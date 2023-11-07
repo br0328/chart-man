@@ -17,6 +17,7 @@
 	right: 0;
 	top: 0;
 	bottom: 0;
+	padding-left: 40px;
 }
 
 .nav-link.active {
@@ -33,7 +34,7 @@
 	width: fit-content;
 	vertical-align: top;
 	padding-top: 20px;
-	padding-right: 20px;
+	padding-right: 40px;
 }
 
 .title_div h1 {	
@@ -48,14 +49,17 @@
 .scenario_div {
 	float: left;
 	vertical-align: top;
-	padding-top: 20px;
-	padding-left: 20px;
+	padding-top: 40px;
 }
 
-.scenario_div h2 {
+.parameter_div {
+	clear: both;
+	padding-top: 20px;
+}
+
+h2 {
 	font-size: 24px;
-	font-weight: bolder;
-	padding-bottom: 10px;
+	font-weight: bolder;	
 	color: #006600;
 }
 
@@ -69,7 +73,7 @@
 .scenario_button {
 	display: inline-block;
 	vertical-align: middle;
-	padding-left: 40px;
+	padding-left: 20px;
 	padding-top: 1px;
 }
 
@@ -84,6 +88,14 @@ button {
     border-width: thin;
     border: linen;
     border-radius: 10px;
+}
+
+input {
+    text-align: center;
+    border-color: lightgray;
+    border-width: thin;
+    border-style: solid;
+    padding: 4px 0 4px 0;
 }
 
 @media (max-width: 960px) {
