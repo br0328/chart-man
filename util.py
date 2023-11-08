@@ -1,5 +1,6 @@
 
 from datetime import datetime, timedelta
+from constant import *
 
 def get_today_str(format_str = '%Y-%m-%d'):
 	return datetime.now().strftime(format_str)
@@ -9,7 +10,10 @@ def get_offset_date_str(base_date_str, days, format_str = '%Y-%m-%d'):
 	return (base_date + timedelta(days = days)).strftime(format_str)
 
 def get_interval_letter(interval_key):
-	return interval_key[1].upper()
+	if interval_key == '3mo':
+		return 'Q'
+	else:
+		return interval_key[1].upper()
 
 def alert_success(msg = ''):
 	return True, msg, {'backgroundColor': ALERT_COLOR_SUCCESS}

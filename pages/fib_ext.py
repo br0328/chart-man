@@ -1,6 +1,7 @@
 
 from dash import dcc, html, callback, Output, Input, State
 from constant import *
+from yahoo import *
 from util import *
 from ui import *
 import dash_bootstrap_components as dbc
@@ -30,7 +31,7 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div)
     Input('load-button', 'n_clicks'),
     [State('symbol-input', 'value'), State('from-date-input', 'date'), State('to-date-input', 'date'), State('interval-input', 'value')]
 )
-def show_alert(n_clicks, symbol, from_date, to_date, interval):
+def on_load_clicked(n_clicks, symbol, from_date, to_date, interval):
     if n_clicks == 0: return alert_hide()
     
     if symbol is None: return alert_error('Invalid symbol. Please select one and retry.')
@@ -39,6 +40,8 @@ def show_alert(n_clicks, symbol, from_date, to_date, interval):
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.')
     if interval is None: return alert_error('Invalid interval. Please select one and retry.')
     
+    load_yf(symbol, from_date, to_date, interval)
+
     msg = 'Scenario was loaded successfully. Please analyze it.'
 
     return alert_warning(msg)
