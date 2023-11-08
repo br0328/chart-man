@@ -1,17 +1,20 @@
 
-def initialize_data():
-	global d_symbol
+import pandas as pd
 
-	d_symbol = None
+def initialize_data():
+	global df_stake
+
+	df_stake = None
+
+def load_stake():
+	global df_stake
+
+	if df_stake is None: df_stake = pd.read_csv('./data/stake.csv', index_col = 'symbol')
+
+	return df_stake
 
 def load_symbols():
-	global d_symbol
-
-	if d_symbol is None:
-		with open('./data/symbol.csv', 'r') as fp:
-			d_symbol = [l.strip('\n') for l in fp]
-
-	return d_symbol
+	return list(load_stake().index)
 
 def load_stock_symbols():
 	return [s for s in load_symbols() if not s.startswith('^')]
