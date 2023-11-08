@@ -1,5 +1,6 @@
 
 from dash import dcc, html, callback, Output, Input, page_container
+from constant import *
 from data import *
 import dash_bootstrap_components as dbc
 import dash
@@ -18,8 +19,19 @@ def get_app_layout():
 	            page_container
 	        ],
 	        className = 'work_pane'
-	    ),
+	    )
 	])
+
+def get_page_layout(title, scenario_div, parameter_div):
+	return html.Div(
+	    children = [
+	        get_page_title(title),
+	        scenario_div,
+	        parameter_div,
+
+		    dbc.Alert([html.H3("", id = "alert-msg")], id = "alert-dlg", is_open = False)
+	    ]
+	)
 
 def get_side_bar():
 	return dbc.Nav([
@@ -79,7 +91,7 @@ def get_interval_input():
 		className = 'scenario_block',
 		children = [
 			dcc.Dropdown(
-				id = 'interval-input', placeholder = 'By ...', options = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'], style = {'width': '120px'}
+				id = 'interval-input', placeholder = 'By ...', options = INTERVAL_ALL, style = {'width': '120px'}
 			)
 		])
 
