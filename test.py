@@ -5,20 +5,8 @@ import pandas as pd
 import joblib
 
 def test_cached_df():
-	df = joblib.load('./cache/D_AAPL.che')
-	print(df)
-
-	df = df.drop('Adj Close', axis = 1)
-	print(df)
-
-	agg_dict = {'Open': 'first',
-            'Close': 'last',
-            'High': 'max',
-            'Low': 'min',
-            'Volume': 'sum'}
-
-	grouped_df = df.groupby(pd.Grouper(freq = 'W')).agg(agg_dict)
-	print(grouped_df)
+	df = joblib.load('./cache/AAPL.che')
+	print(df[:-1])
 
 if __name__ == '__main__':
 	test_cached_df()

@@ -21,8 +21,7 @@ def backup_cache():
 	df = pd.read_csv('./data/stake.csv')
 
 	for i, row in df.iterrows():
-		for interval in [INTERVAL_DAILY, INTERVAL_WEEKLY, INTERVAL_MONTHLY, INTERVAL_QUARTERLY]:
-			load_yf(row['symbol'], None, None, interval, for_backup = True)
+		load_yf(row['symbol'], None, None, None, for_backup = True)
 
 if __name__ == '__main__':
 	#fill_ipo_dates()
