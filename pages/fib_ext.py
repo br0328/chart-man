@@ -40,7 +40,7 @@ def on_load_clicked(n_clicks, symbol, from_date, to_date, interval):
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.')
     if interval is None: return alert_error('Invalid interval. Please select one and retry.')
     
-    load_yf(symbol, from_date, to_date, interval)
+    df = load_yf(symbol, from_date, to_date, interval)
 
     msg = 'Scenario was loaded successfully. Please analyze it.'
 
