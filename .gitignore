@@ -12,6 +12,3 @@ local_settings.py
 
 # Jupyter Notebook
 .ipynb_checkpoints
-
-# yf cache
-cache/

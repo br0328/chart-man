@@ -9,12 +9,6 @@ def get_offset_date_str(base_date_str, days, format_str = YMD_FORMAT):
 	base_date = datetime.strptime(base_date_str, format_str)
 	return (base_date + timedelta(days = days)).strftime(format_str)
 
-def get_interval_letter(interval_key):
-	if interval_key == '3mo':
-		return 'Q'
-	else:
-		return interval_key[1].upper()
-
 def alert_success(msg = ''):
 	return True, msg, {'backgroundColor': ALERT_COLOR_SUCCESS}
 
