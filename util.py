@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from constant import *
 
-def get_today_str(format_str = '%Y-%m-%d'):
+def get_today_str(format_str = YMD_FORMAT):
 	return datetime.now().strftime(format_str)
 
 def get_offset_date_str(base_date_str, days, format_str = YMD_FORMAT):
