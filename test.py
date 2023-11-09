@@ -5,13 +5,22 @@ import pandas as pd
 import joblib
 
 def test_cached_df():
-	df = joblib.load('./cache/D_AAPL_1900-11-30_2023-11-08.che')
+	df = joblib.load('./cache/D_AAPL.che')
 	print(df)
 
-	print('###')
-	print(df.iloc[-1].name.strftime('%Y-%m-%d'))
+	df = df.drop('Adj Close', axis = 1)
+	print(df)
+
+	#df = df.groupby(pd.Grouper(freq = 'Y')).sum()
+
+	agg_dict = {'Open': 'first',
+            'Close': 'last',
+            'High': 'max',
+            'Low': 'min',
+            'Volume': 'sum'}
+
+	grouped_df = df.groupby(pd.Grouper(freq = 'W')).agg(agg_dict)
+	print(grouped_df)
 
 if __name__ == '__main__':
-	initialize_data()
-
 	test_cached_df()
