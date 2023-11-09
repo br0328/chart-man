@@ -157,13 +157,7 @@ def get_pivot_number_input():
             dcc.Dropdown(
             	id = 'pivot-input',
             	placeholder = 'Number of Pivots ...',
-            	options = [
-            		'Recent One Pivot',
-            		'Recent Two Pivots',
-            		'Recent Three Pivots',
-            		'Recent Four Pivots',
-            		'Recent Five Pivots',
-            	],
+            	options = PIVOT_NUMBER_ALL,
             	style = {'width': '210px'})
     	])
 

@@ -5,3 +5,10 @@ ALERT_COLOR_ERROR = '#C01D1D'
 
 INTERVAL_ALL = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly']
 INTERVAL_DAILY, INTERVAL_WEEKLY, INTERVAL_MONTHLY, INTERVAL_QUARTERLY, INTERVAL_YEARLY = tuple(INTERVAL_ALL)
+
+PIVOT_NUMBER_ALL = [
+	'Recent One Pivot', 'Recent Two Pivots', 'Recent Three Pivots', 'Recent Four Pivots', 'Recent Five Pivots'
+]
+PIVOT_NUMBER_ONE, PIVOT_NUMBER_TWO, PIVOT_NUMBER_THREE, PIVOT_NUMBER_FOUR, PIVOT_NUMBER_FIVE = tuple(PIVOT_NUMBER_ALL)
+
+YMD_FORMAT = '%Y-%m-%d'
