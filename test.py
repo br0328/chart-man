@@ -11,8 +11,6 @@ def test_cached_df():
 	df = df.drop('Adj Close', axis = 1)
 	print(df)
 
-	#df = df.groupby(pd.Grouper(freq = 'Y')).sum()
-
 	agg_dict = {'Open': 'first',
             'Close': 'last',
             'High': 'max',
