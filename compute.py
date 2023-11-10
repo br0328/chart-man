@@ -93,3 +93,21 @@ def merge_zigzag_pivots(pivots):
 		res.append(pivots[j])
 
 	return res
+
+def get_recent_downfalls(zdf, count):
+	res = []
+
+	for i in range(len(zdf) - 1, 1, -1):
+		row, prev = zdf.iloc[i], zdf.iloc[i - 1]		
+
+		if row['Sign'] > 0: continue
+		
+		hv = prev['Close']
+		zv = row['Close']
+
+		if (hv - zv) < hv * fibo_pivot_diff_limit: continue
+
+		res.append((prev.name, row.name))
+		if len(res) == count: break
+
+	return res[::-1]

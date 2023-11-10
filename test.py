@@ -8,8 +8,7 @@ def test_cached_df():
 	df = joblib.load('./cache/AAPL.che')
 	print(df[:-1])
 
-	print(df['Volume'].idxmax())
-	print(df.loc[df['Volume'].idxmax()])
+	print(df.iloc[0].name)
 
 def test_stake():
 	initialize_data()

@@ -8,3 +8,5 @@ zigzag_merge_val_limit = 0.5
 zigzag_merge_dur_limit = 1080
 
 default_fibo_ext_merge_thres = 2.5
+
+fibo_pivot_diff_limit = 0.09

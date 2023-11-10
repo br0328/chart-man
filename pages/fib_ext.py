@@ -55,6 +55,9 @@ def on_load_clicked(n_clicks, symbol, from_date, to_date, interval):
     msg = 'Scenario was loaded successfully. Please analyze it.'
 
     zdf = get_zigzag(df)
+    downfalls = get_recent_downfalls(zdf, 4)
+
+    print(downfalls)
 
     return alert_success(msg) + [update_plot(df, zdf)]
 
@@ -79,7 +82,7 @@ def update_plot(df, zdf):
     fig.add_trace(get_quick_line(zdf, 'Close'), row = 1, col = 1)
 
     update_shared_xaxes(fig, df, 2)
-    
+
     fig.update_yaxes(type = "log", title_text = "Price", row = 1, col = 1)
     fig.update_yaxes(title_text = "Volume", row = 2, col = 1)
 
