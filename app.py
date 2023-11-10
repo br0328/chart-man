@@ -1,4 +1,5 @@
 
+from config import *
 from data import *
 from ui import *
 import dash_bootstrap_components as dbc
@@ -12,4 +13,4 @@ app = dash.Dash(__name__, use_pages = True, external_stylesheets = [dbc.themes.S
 app.title = 'Chartman'
 app.layout = get_app_layout()
 
-app.run(debug = True, port = 1000)
+app.run(debug = yf_on, port = 1000)

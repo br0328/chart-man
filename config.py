@@ -1,8 +1,10 @@
 
-yf_on = True
+yf_on = False
 
-theme_color = {
-	'bkground': '#FFFFFF',
-	'title': '#006600',
-	'panel': '#EEEEEE'
-}
+zigzag_window = 110
+zigzag_padding = 10
+zigzag_merges = 3
+zigzag_merge_val_limit = 0.5
+zigzag_merge_dur_limit = 1080
+
+default_fibo_ext_merge_thres = 2.5

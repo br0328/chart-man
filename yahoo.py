@@ -20,6 +20,8 @@ def load_yf(symbol, start, end, interval, fit_today = False, for_backup = False)
     else:
         df = joblib.load('./cache/{}.che'.format(symbol))
 
+    df = df.dropna()
+
     agg_dict = {
         'Open': 'first',
         'Close': 'last',

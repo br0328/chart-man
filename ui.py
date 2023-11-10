@@ -1,6 +1,8 @@
 
 from dash import dcc, html, callback, Output, Input, page_container
 from constant import *
+from config import *
+from util import *
 from data import *
 import dash_bootstrap_components as dbc
 import dash
@@ -18,19 +20,28 @@ def get_app_layout():
 	        children = [
 	            page_container
 	        ],
-	        className = 'work_pane'
+	        className = 'work_pane',
+	        style = {'height': '100%'}
 	    )
 	])
 
-def get_page_layout(title, scenario_div, parameter_div):
+def get_page_layout(title, scenario_div, parameter_div, plot_div):
 	return html.Div(
 	    children = [
 	        get_page_title(title),
-	        scenario_div,
-	        parameter_div,
+	        
+	        html.Div(
+	        	className = 'primary_pane',
+	        	children = [
+			        scenario_div,
+			        parameter_div,
+			        plot_div,
+	        	]
+	        ),
 
-		    dbc.Alert([html.H3("", id = "alert-msg")], id = "alert-dlg", is_open = False)
-	    ]
+		    dbc.Alert([html.H3("", id = "alert-msg")], id = "alert-dlg", is_open = False, fade = True, duration = 3000)
+	    ],
+	    style = {'height': '100%'}
 	)
 
 def get_side_bar():
@@ -83,7 +94,13 @@ def get_date_range():
 				style = {
 					'display': 'inline-block', 'padding': '0 10px 0 10px'
 				}),
-			dcc.DatePickerSingle(id = 'to-date-input', placeholder='To ...', display_format = 'YYYY-M-D', style = {'display': 'inline-block'})
+			dcc.DatePickerSingle(
+				id = 'to-date-input',
+				placeholder='To ...',
+				display_format = 'YYYY-M-D',
+				style = {'display': 'inline-block'},
+				date = get_today_str()
+				)
 		])
 
 def get_interval_input():
@@ -150,6 +167,12 @@ def get_parameter_div(children):
 			)
 		])
 
+def get_plot_div():
+	return html.Div(className = 'plot_div',
+		children = [
+			html.Div(id = 'out-plot')
+		])
+
 def get_pivot_number_input():
 	return html.Div(
         className = 'scenario_block',
@@ -158,7 +181,9 @@ def get_pivot_number_input():
             	id = 'pivot-input',
             	placeholder = 'Number of Pivots ...',
             	options = PIVOT_NUMBER_ALL,
-            	style = {'width': '210px'})
+            	style = {'width': '210px'},
+            	value = PIVOT_NUMBER_ONE
+            )
     	])
 
 def get_merge_thres_input():
@@ -169,7 +194,8 @@ def get_merge_thres_input():
             	id = 'merge-input',
             	placeholder = 'Merge By ...',
             	type = 'text',
-            	style = {'width': '110px'}
+            	style = {'width': '110px'},
+            	value = str(default_fibo_ext_merge_thres)
             ),
             html.Label('%', style = {'fontWeight': 'bolder', 'paddingLeft': '5px'})
     	])
