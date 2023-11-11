@@ -152,3 +152,72 @@ def get_fib_extensions(zdf, downfalls, merge_thres, suppress_level):
 		res.append(g)
 
 	return res
+
+def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
+	res = {}
+	cur_price = df.loc[cur_date]['Close']
+
+	for g in extensions:
+		lv = (g[0][-1] + g[-1][-1]) / 2
+		is_resist = (lv >= cur_price)
+
+		behavior, pv, start_date = None, None, None
+
+		for d in df.loc[cur_date:].iloc:
+			v = d.Close
+
+			if pv is not None:
+				if (pv < lv and v >= lv) or (pv > lv and v <= lv):
+					start_date = d.name
+					break
+
+			pv = v
+
+		if start_date is not None:
+			milestone_forward = FIB_BEHAVIOR_MILESTONE
+			milestone_date = None
+
+			while milestone_forward >= 5 and milestone_date is None:
+				milestone_date = get_nearest_forward_date(df, start_date + timedelta(days = milestone_forward))
+				milestone_forward //= 2
+
+			if milestone_date is not None:
+				mlv = df.loc[milestone_date]['Close']
+				thres = lv * merge_thres
+
+				has_mid_up, has_mid_down = False, False
+
+				for d in df.loc[df.loc[cur_date:milestone_date].index[1:-1]].iloc:
+					if (d.Close - lv) >= thres:
+						has_mid_up = True
+					elif (lv - d.Close) >= thres:
+						has_mid_down = False
+
+				if (mlv - lv) >= thres:
+					if has_mid_down:
+						behavior = 'Res_Semi_Break' if is_resist else 'Sup_Semi_Sup'
+					else:
+						behavior = 'Res_Break' if is_resist else 'Sup_Sup'
+				elif (lv - mlv) >= thres:
+					if has_mid_up:
+						behavior = 'Res_Semi_Res' if is_resist else 'Sup_Semi_Break'
+					else:
+						behavior = 'Res_Res' if is_resist else 'Sup_Break'						
+				else:
+					end_date = get_nearest_forward_date(df, milestone_date + timedelta(days = milestone_forward))
+
+					if end_date is not None:
+						elv = df.loc[milestone_date]['Close']
+
+						if (elv - lv) >= thres:
+							behavior = 'Res_Semi_Break' if is_resist else 'Sup_Semi_Sup'
+						elif (lv - elv) >= thres:
+							behavior = 'Res_Semi_Res' if is_resist else 'Sup_Semi_Break'
+						else:
+							behavior = 'Vibration'
+					else:
+						behavior = 'Vibration'
+
+		res[g[0]] = behavior
+
+	return res

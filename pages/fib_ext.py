@@ -76,17 +76,16 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
         return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
     
     df = load_yf(symbol, from_date, to_date, interval)
-    cur_date = get_timestamp(cur_date)
+    cur_date = get_nearest_backward_date(df, get_timestamp(cur_date))
 
-    while cur_date not in df.index or str(df.loc[cur_date]['Close']).lower().startswith('na'):
-        cur_date = cur_date - timedelta(days = 1)
-
+    if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
     zdf = get_zigzag(df, cur_date)
 
     downfalls = get_recent_downfalls(zdf, PIVOT_NUMBER_ALL.index(pivot_number) + 1)
     extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2)
+    behaviors = get_fib_ext_behaviors(df, extensions, cur_date, get_safe_num(merge_thres))
 
-    return alert_success('Successfully analyzed.') + [update_plot(df, downfalls, extensions, cur_date)]
+    return alert_success('Successfully analyzed.') + [update_plot(df, downfalls, extensions, behaviors, cur_date)]
 
 @callback(
     [
@@ -116,7 +115,7 @@ def on_symbol_changed(symbol, from_date, cur_date):
 
     return [from_date, cur_date]
 
-def update_plot(df, downfalls, extensions, cur_date):
+def update_plot(df, downfalls, extensions, behaviors, cur_date):
     fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.05, row_heights = [0.8, 0.2])
     day_span = (df.index[-1] - df.index[0]).days
 
@@ -129,6 +128,8 @@ def update_plot(df, downfalls, extensions, cur_date):
     upper_count, lower_count = 0, 0
 
     for g in extensions:
+        b = behaviors[g[0]]
+
         if len(g) > 1:
             fig.add_trace(
                 go.Scatter(
@@ -156,13 +157,16 @@ def update_plot(df, downfalls, extensions, cur_date):
                         mode = 'markers',
                         x = [df.index[int(len(df) * (i + 1) * fold_step)]],
                         y = [lv],
-                        marker = dict(color = PLOT_COLORS_DARK[e[0]], symbol = 'square')
+                        marker = dict(color = PLOT_COLORS_DARK[e[0]], symbol = 'circle')
                     ),
                     row = 1, col = 1
-                )                
+                )
+
+            bmark_x = df.index[int(len(df) * (len(g) + 2) * fold_step)]
+            bmark_y = lv
         else:
             i, hd, zd, hv, zv, j, lv = g[0]
-            x = df.index[0] + timedelta(days = int(day_span * dash_indent * (i + 2)))
+            x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) + 0.005)))
 
             fig.add_shape(
                 type = "line",
@@ -178,12 +182,14 @@ def update_plot(df, downfalls, extensions, cur_date):
                     x = [x],
                     y = [lv],
                     mode = "text",
-                    text = ['{:.1f}% '.format(FIB_EXT_LEVELS[j] * 100)],
+                    text = ['{:.1f}%     '.format(FIB_EXT_LEVELS[j] * 100)],
                     textposition = "middle left",
                     textfont = dict(color = PLOT_COLORS_DARK[i])
                 ),
                 row = 1, col = 1
             )
+            bmark_x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) - 0.004)))
+            bmark_y = lv
 
         lv = (g[0][-1] + g[-1][-1]) / 2
         is_near = False
@@ -208,6 +214,25 @@ def update_plot(df, downfalls, extensions, cur_date):
                     xref = "paper",
                     xanchor = 'left',
                     yref = "y"
+                )
+            )
+
+        if b is not None:
+            fig.add_trace(
+                go.Scatter(
+                    mode = "markers",
+                    x = [bmark_x],
+                    y = [bmark_y],
+                    marker = dict(
+                        symbol = FIB_EXT_MARKERS[b][0],                        
+                        color = FIB_EXT_MARKERS[b][1],
+                        size = 7.5,
+                        angle = FIB_EXT_MARKERS[b][2],
+                        line = dict(
+                            color = "black",
+                            width = 1
+                        )
+                    )
                 )
             )
 

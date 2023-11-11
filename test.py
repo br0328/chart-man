@@ -8,8 +8,15 @@ import joblib
 def test_cached_df():
 	df = joblib.load('./cache/AAPL.che')
 	print(df[:-1])
+	print('###')
 
-	print(get_timestamp('2008-02-11') in df.index)
+	print(df.loc[get_timestamp('2008-02-11'):].index[1:3])
+
+	for r in df.loc[df.loc[get_timestamp('2008-02-11'):].index[1:3]].iloc:
+		print(r)
+		break
+
+	print(df.iloc[0:3])
 
 def test_stake():
 	initialize_data()
