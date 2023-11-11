@@ -1,6 +1,7 @@
 
 from yahoo import *
 from data import *
+from util import *
 import pandas as pd
 import joblib
 
@@ -8,7 +9,7 @@ def test_cached_df():
 	df = joblib.load('./cache/AAPL.che')
 	print(df[:-1])
 
-	print(df.iloc[0].name)
+	print(get_timestamp('2008-02-11') in df.index)
 
 def test_stake():
 	initialize_data()

@@ -79,14 +79,19 @@ def get_symbol_input():
 	return html.Div(
 		className = 'scenario_block',
 		children = [
-			dcc.Dropdown(id = 'symbol-input', placeholder = 'Select Symbol ...', options = load_stock_symbols(), style = {'width': '210px'})
+			dcc.Dropdown(id = 'symbol-input', placeholder = 'Select Symbol', options = load_stock_symbols(), style = {'width': '210px'})
 		])
 
 def get_date_range():
 	return html.Div(
 		className = 'scenario_block',
 		children = [
-			dcc.DatePickerSingle(id = 'from-date-input', placeholder='From ...', display_format = 'YYYY-M-D', style = {'display': 'inline-block'}),
+			dcc.DatePickerSingle(
+				id = 'from-date-input',
+				placeholder = 'From',
+				display_format = 'YYYY-M-D',
+				style = {'display': 'inline-block'}
+				),
 			html.Div(
 				children = [
 					html.Label('→', style = {'fontWeight': 'bolder'})
@@ -96,10 +101,22 @@ def get_date_range():
 				}),
 			dcc.DatePickerSingle(
 				id = 'to-date-input',
-				placeholder='To ...',
+				placeholder = 'To',
 				display_format = 'YYYY-M-D',
 				style = {'display': 'inline-block'},
 				date = get_today_str()
+				)
+		])
+
+def get_cur_date_picker():
+	return html.Div(
+		className = 'scenario_block',
+		children = [
+			dcc.DatePickerSingle(
+				id = 'cur-date-input',
+				placeholder = 'When',
+				display_format = 'YYYY-M-D',
+				style = {'display': 'inline-block'}
 				)
 		])
 
@@ -108,19 +125,8 @@ def get_interval_input():
 		className = 'scenario_block',
 		children = [
 			dcc.Dropdown(
-				id = 'interval-input', placeholder = 'By ...', options = INTERVAL_ALL, style = {'width': '120px'}
+				id = 'interval-input', placeholder = 'By', options = INTERVAL_ALL, style = {'width': '120px'}
 			)
-		])
-
-def get_load_button():
-	return html.Div(
-		className = 'scenario_button',
-		children = [
-			html.Button(
-                'LOAD',
-                id = 'load-button',
-                n_clicks = 0
-            ),
 		])
 
 def get_analyze_button():
@@ -179,10 +185,10 @@ def get_pivot_number_input():
         children = [
             dcc.Dropdown(
             	id = 'pivot-input',
-            	placeholder = 'Number of Pivots ...',
+            	placeholder = 'Number of Pivots',
             	options = PIVOT_NUMBER_ALL,
             	style = {'width': '210px'},
-            	value = PIVOT_NUMBER_ONE
+            	value = PIVOT_NUMBER_FOUR
             )
     	])
 
@@ -192,7 +198,7 @@ def get_merge_thres_input():
         children = [
             dcc.Input(
             	id = 'merge-input',
-            	placeholder = 'Merge By ...',
+            	placeholder = 'Merge By',
             	type = 'text',
             	style = {'width': '110px'},
             	value = str(default_fibo_ext_merge_thres)

@@ -18,14 +18,25 @@ def get_duration(start_date_str, end_date_str, format_str = YMD_FORMAT):
 def get_timestamp(date_str, format_str = YMD_FORMAT):
 	return datetime.strptime(date_str, format_str)
 
-def alert_success(msg = '', none_count = 0):
-	return [True, msg, {'backgroundColor': ALERT_COLOR_SUCCESS}] + [None for _ in range(none_count)]
+def alert_success(msg = '', none_ret = []):
+	return [True, msg, {'backgroundColor': ALERT_COLOR_SUCCESS}] + none_ret
 
-def alert_warning(msg = '', none_count = 0):
-	return [True, msg, {'backgroundColor': ALERT_COLOR_WARNING}] + [None for _ in range(none_count)]
+def alert_warning(msg = '', none_ret = 0):
+	return [True, msg, {'backgroundColor': ALERT_COLOR_WARNING}] + none_ret
 
-def alert_error(msg = '', none_count = 0):
-	return [True, msg, {'backgroundColor': ALERT_COLOR_ERROR}] + [None for _ in range(none_count)]
+def alert_error(msg = '', none_ret = 0):
+	return [True, msg, {'backgroundColor': ALERT_COLOR_ERROR}] + none_ret
 
-def alert_hide(none_count = 0):
-	return [False, '', {}] + [None for _ in range(none_count)]
+def alert_hide(none_ret = 0):
+	return [False, '', {}] + none_ret
+
+def get_safe_num(v):
+	if isinstance(v, int) or isinstance(v, float): return v
+
+	try:
+		return int(v)
+	except ValueError:
+		try:
+			return float(v)
+		except ValueError:
+			return 0

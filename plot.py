@@ -2,7 +2,7 @@
 import plotly.graph_objects as go
 
 def get_candlestick(df):
-	return go.Candlestick(
+    return go.Candlestick(
         x = df.index,
         open = df['Open'],
         high = df['High'],
@@ -10,7 +10,7 @@ def get_candlestick(df):
         close = df['Close'],
         increasing_line_color = 'green',
         decreasing_line_color = 'red'
-    )
+        )    
 
 def get_volume_bar(df):
 	return go.Bar(

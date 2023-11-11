@@ -1,14 +1,15 @@
 
 from datetime import timedelta
+from constant import *
 from config import *
+from util import *
 import pandas as pd
 
-def get_zigzag(df):
+def get_zigzag(df, final_date):
 	pivots = []
-	series = df['Close']
 
+	series = df['Close']
 	init_date = df.index[0]
-	final_date = df.index[-1]
 	
 	win_dur = timedelta(days = zigzag_window)
 	pad_dur = timedelta(days = zigzag_padding)
@@ -102,12 +103,52 @@ def get_recent_downfalls(zdf, count):
 
 		if row['Sign'] > 0: continue
 		
-		hv = prev['Close']
-		zv = row['Close']
+		hv, zv = prev['Close'], row['Close']
 
 		if (hv - zv) < hv * fibo_pivot_diff_limit: continue
 
 		res.append((prev.name, row.name))
+
 		if len(res) == count: break
 
 	return res[::-1]
+
+def get_fib_extensions(zdf, downfalls, merge_thres, suppress_level):
+	all_levels = []
+
+	for i, f in enumerate(downfalls):
+		hd, zd = f
+		hv, zv = zdf.loc[hd]['Close'], zdf.loc[zd]['Close']
+		dv = hv - zv
+
+		for j, l in enumerate(FIB_EXT_LEVELS):
+			lv = zv + dv * l
+			if lv > suppress_level: break
+
+			all_levels.append((i, hd, zd, hv, zv, j, round(lv, 4)))
+
+	all_levels.sort(key = lambda x: x[-1])
+	res, flags = [], []
+
+	for i, level in enumerate(all_levels):
+		if i in flags: continue
+
+		lv = level[-1]
+		th = lv * merge_thres
+
+		flags.append(i)		
+		g = [level]
+
+		for j in range(i + 1, len(all_levels)):
+			if j in flags: continue
+			v = all_levels[j][-1]
+
+			if v - lv <= th:
+				flags.append(j)
+				g.append(all_levels[j])
+
+				lv = v
+
+		res.append(g)
+
+	return res
