@@ -30,12 +30,10 @@ parameter_div = get_parameter_div([
     get_analyze_button(),
     get_backtest_button()
 ])
-out_tab = get_out_tab(
-    {
-        'Plot': get_plot_div(),
-        'Report': get_report_div()
-    }
-)
+out_tab = get_out_tab({
+    'Plot': get_plot_div(),
+    'Report': get_report_div()
+})
 layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out_tab)
 
 @callback(

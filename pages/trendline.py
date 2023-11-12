@@ -8,21 +8,9 @@ import dash
 dash.register_page(__name__, path = '/trendline', name = 'Trendline', order = 3)
 
 scenario_div = get_scenario_div([
-    get_symbol_input(),
-    get_date_range(),
-    get_interval_input()
 ])
 parameter_div = get_parameter_div([
-    get_cur_date_picker(),
-    get_pivot_number_input(),
-    get_merge_thres_input(),
-    get_analyze_button(),
-    get_backtest_button()
 ])
-out_tab = get_out_tab(
-    {
-        'Plot': get_plot_div(),
-        'Report': get_report_div()
-    }
-)
+out_tab = get_out_tab({
+})
 layout = get_page_layout('Trendline', scenario_div, parameter_div, out_tab)

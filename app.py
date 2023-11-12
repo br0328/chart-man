@@ -13,4 +13,4 @@ app = dash.Dash(__name__, use_pages = True, external_stylesheets = [dbc.themes.S
 app.title = 'Chartman'
 app.layout = get_app_layout()
 
-app.run(debug = yf_on, port = 1000)
+app.run(debug = False, host = 'localhost', port = 1000)
