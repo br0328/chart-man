@@ -1,0 +1,46 @@
+appdirs==1.4.4
+beautifulsoup4==4.12.2
+Bottleneck @ file:///C:/ci_311/bottleneck_1676500016583/work
+Brotli @ file:///C:/ci_311/brotli-split_1676435766766/work
+certifi==2023.7.22
+charset-normalizer==3.3.2
+click @ file:///C:/b/abs_f9ihnt72pu/croot/click_1698129847492/work
+colorama @ file:///C:/ci_311/colorama_1676422310965/work
+dash==2.9.0
+dash-bootstrap-components==1.5.0
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-table==5.0.0
+Flask @ file:///C:/ci_311/flask_1676436667658/work
+Flask-Compress @ file:///C:/ci_311/flask-compress_1676440939415/work
+frozendict==2.3.8
+html5lib==1.1
+idna==3.4
+itsdangerous @ file:///tmp/build/80754af9/itsdangerous_1621432558163/work
+Jinja2 @ file:///C:/ci_311/jinja2_1676424968965/work
+joblib @ file:///C:/b/abs_1anqjntpan/croot/joblib_1685113317150/work
+lxml==4.9.3
+MarkupSafe @ file:///C:/ci_311/markupsafe_1676424152318/work
+mkl-fft @ file:///C:/b/abs_19i1y8ykas/croot/mkl_fft_1695058226480/work
+mkl-random @ file:///C:/b/abs_edwkj1_o69/croot/mkl_random_1695059866750/work
+mkl-service==2.4.0
+multitasking==0.0.11
+numexpr @ file:///C:/b/abs_5fucrty5dc/croot/numexpr_1696515448831/work
+numpy @ file:///C:/b/abs_9fu2cs2527/croot/numpy_and_numpy_base_1695830496596/work/dist/numpy-1.26.0-cp311-cp311-win_amd64.whl#sha256=ebb3a554edce1131a5b1b0d4afa8f980929b1226bebc4eb515ac2e29b44186d2
+packaging==23.2
+pandas @ file:///C:/b/abs_81b3npjrl8/croot/pandas_1697477219064/work/dist/pandas-2.1.1-cp311-cp311-win_amd64.whl#sha256=1732f3b07ba52119320a2b01aa09f2627f6258176e492b728daf60efb4f4d78e
+peewee==3.17.0
+plotly==5.17.0
+python-dateutil @ file:///tmp/build/80754af9/python-dateutil_1626374649649/work
+pytz @ file:///C:/b/abs_19q3ljkez4/croot/pytz_1695131651401/work
+requests==2.31.0
+six @ file:///tmp/build/80754af9/six_1644875935023/work
+soupsieve==2.5
+tenacity @ file:///C:/b/abs_ddkoa9nju6/croot/tenacity_1682972298929/work
+tqdm==4.66.1
+tzdata @ file:///croot/python-tzdata_1690578112552/work
+urllib3==2.0.7
+webencodings==0.5.1
+Werkzeug @ file:///C:/b/abs_8578rs2ra_/croot/werkzeug_1679489759009/work
+yfinance==0.2.31
+
