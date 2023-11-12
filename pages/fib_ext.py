@@ -16,7 +16,7 @@ import plotly.express as px
 import numpy as np
 import dash
 
-dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension')
+dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension', order = 7)
 
 scenario_div = get_scenario_div([
     get_symbol_input(),
@@ -86,13 +86,22 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
     cur_date = get_nearest_backward_date(df, get_timestamp(cur_date))
 
     if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
+    
     zdf = get_zigzag(df, cur_date)
+    pivot_number = PIVOT_NUMBER_ALL.index(pivot_number) + 1
 
-    downfalls = get_recent_downfalls(zdf, PIVOT_NUMBER_ALL.index(pivot_number) + 1)
+    downfalls = get_recent_downfalls(zdf, pivot_number)
     extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2)
     behaviors = get_fib_ext_behaviors(df, extensions, cur_date, get_safe_num(merge_thres))
 
-    return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date), None]
+    records = analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, merge_thres, interval, symbol)
+    csv_path = 'out/FIB-EXT-ANALYZE_{}_{}_{}_{}_{}_p{}_m{}%.csv'.format(
+        symbol, from_date, cur_date.strftime(YMD_FORMAT), to_date, interval, pivot_number, '{:.1f}'.format(100 * merge_thres)
+    )
+    records.to_csv(csv_path, index = False)
+    report = get_report_content(records, csv_path)
+
+    return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date), report]
 
 @callback(
     [
@@ -168,7 +177,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
     records, success_rate, cum_profit = backtest_fib_extension(
         df, interval, pivot_number, get_safe_num(merge_thres), symbol
     )
-    csv_path = 'out/FIB_BKTEST_{}_{}_{}_{}_p{}_m{}%_sr={}%_cp={}%.csv'.format(
+    csv_path = 'out/FIB-EXT-BKTEST_{}_{}_{}_{}_p{}_m{}%_sr={}%_cp={}%.csv'.format(
         symbol, from_date, to_date, interval, pivot_number,
         '{:.1f}'.format(100 * merge_thres),
         '{:.1f}'.format(100 * success_rate),

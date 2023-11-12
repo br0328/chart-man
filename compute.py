@@ -229,6 +229,51 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 
 	return res
 
+def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, merge_thres, interval, symbol):
+	cols = ['ExtID', 'Level', 'Type', 'Width', 'Behavior', 'Description', ' ']
+	res = pd.DataFrame(columns = cols)
+	
+	cur_price = df.loc[cur_date]['Close']
+	i = 0
+
+	for g in extensions:
+		lv = (g[0][-1] + g[-1][-1]) / 2
+		b = behaviors[g[0]]
+		i += 1
+
+		record = [
+			i,
+			'{:.4f}$'.format(lv),
+			'Resistance' if lv >= cur_price else 'Support',
+			'{:.2f}%'.format(100 * (g[-1][-1] - g[0][-1]) / g[0][-1]) if len(g) > 1 else '',
+			FIB_EXT_MARKERS[b][-1] if b is not None else '',
+			' & '.join(['{:.1f}% of {:.4f}-{:.4f}'.format(FIB_EXT_LEVELS[j] * 100, zv, hv) for _, _, _, hv, zv, j, _ in g]),
+			''
+		]
+		res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
+
+	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
+	
+	res = pd.concat([res, pd.Series({
+		'ExtID': 'Ticker:',
+		'Level': symbol,
+		'Type': 'Current Date:',
+		'Width': cur_date.strftime('%d %b %Y'),
+		'Behavior': 'Current Price:',
+		'Description': '{:.4f}$'.format(cur_price)
+	}).to_frame().T], ignore_index = True)
+
+	res = pd.concat([res, pd.Series({
+		'Level': 'From: {}'.format(df.index[0].strftime('%d %b %Y')),
+		'Type': 'To: {}'.format(df.index[-1].strftime('%d %b %Y')),
+		'Width': 'By: ' + interval,
+		'Behavior': 'Merge: {:.1f}%'.format(merge_thres * 100),
+		'Description': 'Recent Pivots: {}'.format(pivot_number)
+	}).to_frame().T], ignore_index = True)
+
+	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
+	return res
+
 def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 	cols = ['TransID', 'Position', 'EnterDate', 'EnterPrice', 'ExitDate', 'ExitPrice', 'Offset', 'Profit', 'CumProfit', 'X', ' ']
 
@@ -310,14 +355,14 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 		'ExitDate': 'By: ' + interval,
 		'ExitPrice': 'Recent Pivots: {}'.format(pivot_number),
 		'Offset': 'Merge: {:.1f}%'.format(merge_thres * 100)
-		}).to_frame().T], ignore_index = True)
+	}).to_frame().T], ignore_index = True)
 
 	res = pd.concat([res, pd.Series({
 		'EnterDate': 'Success Rate:',
 		'EnterPrice': '{:.1f}%'.format(success_rate * 100),
 		'ExitDate': 'Cumulative Profit:',
 		'ExitPrice': '{:.1f}%'.format(cum_profit * 100)
-		}).to_frame().T], ignore_index = True)
+	}).to_frame().T], ignore_index = True)
 
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
 	return res, success_rate, cum_profit

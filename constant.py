@@ -20,15 +20,15 @@ FIB_BEHAVIOR_MILESTONE = 60
 MIN_FIB_EXT_TRANS_DUR = 5
 
 FIB_EXT_MARKERS = {
-	'Res_Break': ('triangle-up', 'black', 0, 'middle'),
-	'Res_Semi_Break': ('triangle-up', 'white', 0, 'middle'),
-	'Res_Res': ('arrow-bar-left', 'black', 90, 'middle'),
-	'Res_Semi_Res': ('arrow-bar-left', 'white', 90, 'middle'),
-	'Sup_Break': ('triangle-down', 'black', 0, 'middle'),
-	'Sup_Semi_Break': ('triangle-down', 'white', 0, 'middle'),
-	'Sup_Sup': ('arrow-bar-right', 'black', 90, 'middle'),
-	'Sup_Semi_Sup': ('arrow-bar-right', 'white', 90, 'middle'),
-	'Vibration': ('diamond', 'white', 0, 'middle')
+	'Res_Break': ('triangle-up', 'black', 0, 'Breakout'),
+	'Res_Semi_Break': ('triangle-up', 'white', 0, 'Semi-Breakout'),
+	'Res_Res': ('arrow-bar-left', 'black', 90, 'Resistance'),
+	'Res_Semi_Res': ('arrow-bar-left', 'white', 90, 'Semi-Resistance'),
+	'Sup_Break': ('triangle-down', 'black', 0, 'Breakout'),
+	'Sup_Semi_Break': ('triangle-down', 'white', 0, 'Semi-Breakout'),
+	'Sup_Sup': ('arrow-bar-right', 'black', 90, 'Support'),
+	'Sup_Semi_Sup': ('arrow-bar-right', 'white', 90, 'Semi-Support'),
+	'Vibration': ('diamond', 'white', 0, 'Vibration')
 }
 
 PLOT_COLORS_DARK = ['blue', 'orange', 'indigo', 'magenta', 'green', 'red', 'black']
