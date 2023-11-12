@@ -44,7 +44,7 @@ def get_safe_num(v):
 def get_nearest_backward_date(df, cur_date):
 	res = cur_date
 
-	while res not in df.index or str(df.loc[res]['Close']).lower().startswith('na'):
+	while res not in df.index:
 		res = res - timedelta(days = 1)
 
 		if res < df.index[0]: return None
@@ -54,7 +54,7 @@ def get_nearest_backward_date(df, cur_date):
 def get_nearest_forward_date(df, cur_date):
 	res = cur_date
 
-	while res not in df.index or str(df.loc[res]['Close']).lower().startswith('na'):
+	while res not in df.index:
 		res = res + timedelta(days = 1)
 
 		if res > df.index[-1]: return None

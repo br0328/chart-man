@@ -31,6 +31,7 @@ def load_yf(symbol, start, end, interval, fit_today = False, for_backup = False)
         'Volume': 'sum'
     }
     df = df.groupby(pd.Grouper(freq = INTERVAL_LETTER_DICT[interval])).agg(agg_dict)
+    df = df.dropna()
 
     if not fit_today:
         today = get_today_str()

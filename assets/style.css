@@ -66,12 +66,6 @@
 	padding-top: 20px;
 }
 
-.plot_div {
-	flex-grow: 1;
-	overflow-y: scroll;
-	margin-top: 20px;
-}
-
 .primary_pane {
 	position: absolute;
 	left: 40px;
@@ -79,6 +73,38 @@
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+}
+
+.out_tab_parent {
+	flex-grow: 1;
+	overflow-y: scroll;
+	margin-top: 20px;
+}
+
+.out_tab {
+	height: 35px;	
+}
+
+.out_tab > .tab {
+	padding: 5px!important;
+}
+
+.dash-graph {
+	height: 1200px;
+}
+
+#out-report {
+	padding-top: 10px;
+}
+
+#out-report th {
+	text-align: center;
+	background: black;
+	color: white;
+}
+
+.dash-fixed-content {
+	height: fit-content;
 }
 
 h2 {

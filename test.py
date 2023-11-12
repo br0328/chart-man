@@ -10,13 +10,9 @@ def test_cached_df():
 	print(df[:-1])
 	print('###')
 
-	print(df.loc[get_timestamp('2008-02-11'):].index[1:3])
-
-	for r in df.loc[df.loc[get_timestamp('2008-02-11'):].index[1:3]].iloc:
-		print(r)
-		break
-
-	print(df.iloc[0:3])
+	for d in df.index:
+		if str(df.loc[d]['Close']).lower().startswith('na'):
+			print(d)
 
 def test_stake():
 	initialize_data()

@@ -1,5 +1,5 @@
 
-from dash import dcc, html, callback, Output, Input, page_container
+from dash import dcc, html, dash_table, callback, Output, Input, page_container
 from constant import *
 from config import *
 from util import *
@@ -25,7 +25,7 @@ def get_app_layout():
 	    )
 	])
 
-def get_page_layout(title, scenario_div, parameter_div, plot_div):
+def get_page_layout(title, scenario_div, parameter_div, out_tab):
 	return html.Div(
 	    children = [
 	        get_page_title(title),
@@ -35,10 +35,9 @@ def get_page_layout(title, scenario_div, parameter_div, plot_div):
 	        	children = [
 			        scenario_div,
 			        parameter_div,
-			        plot_div,
+			        out_tab
 	        	]
 	        ),
-
 		    dbc.Alert([html.H3("", id = "alert-msg")], id = "alert-dlg", is_open = False, fade = True, duration = 3000)
 	    ],
 	    style = {'height': '100%'}
@@ -80,7 +79,8 @@ def get_symbol_input():
 		className = 'scenario_block',
 		children = [
 			dcc.Dropdown(id = 'symbol-input', placeholder = 'Select Symbol', options = load_stock_symbols(), style = {'width': '210px'})
-		])
+		]
+	)
 
 def get_date_range():
 	return html.Div(
@@ -106,7 +106,8 @@ def get_date_range():
 				style = {'display': 'inline-block'},
 				date = get_today_str()
 				)
-		])
+		]
+	)
 
 def get_cur_date_picker():
 	return html.Div(
@@ -118,7 +119,8 @@ def get_cur_date_picker():
 				display_format = 'YYYY-M-D',
 				style = {'display': 'inline-block'}
 				)
-		])
+		]
+	)
 
 def get_interval_input():
 	return html.Div(
@@ -127,7 +129,8 @@ def get_interval_input():
 			dcc.Dropdown(
 				id = 'interval-input', placeholder = 'By', options = INTERVAL_ALL, style = {'width': '120px'}
 			)
-		])
+		]
+	)
 
 def get_analyze_button():
 	return html.Div(
@@ -138,7 +141,8 @@ def get_analyze_button():
                 id = 'analyze-button',
                 n_clicks = 0
             ),
-		])
+		]
+	)
 
 def get_backtest_button():
 	return html.Div(
@@ -149,7 +153,8 @@ def get_backtest_button():
                 id = 'backtest-button',
                 n_clicks = 0
             ),
-		])
+		]
+	)
 
 def get_scenario_div(children):
 	return html.Div(
@@ -160,9 +165,10 @@ def get_scenario_div(children):
 				children = children,
 				style = {'paddingLeft': '40px'}
 			)
-		])
+		]
+	)
 
-def get_parameter_div(children):
+def get_parameter_div(children):	
 	return html.Div(
 		className = 'parameter_div',
 		children = [
@@ -171,13 +177,26 @@ def get_parameter_div(children):
 				children = children,
 				style = {'paddingLeft': '40px'}
 			)
-		])
+		]
+	)
+
+def get_out_tab(children):
+	return html.Div(
+		className = 'out_tab_parent',
+		children = [
+			dcc.Tabs(
+				className = 'out_tab',
+				id = 'out_tab',
+				children = [dcc.Tab(label = label, value = label, children = [child]) for label, child in children.items()]
+			)
+		]
+	)
 
 def get_plot_div():
-	return html.Div(className = 'plot_div',
-		children = [
-			html.Div(id = 'out-plot')
-		])
+	return html.Div(id = 'out-plot')
+
+def get_report_div():
+	return html.Div(id = 'out-report')
 
 def get_pivot_number_input():
 	return html.Div(
@@ -190,7 +209,8 @@ def get_pivot_number_input():
             	style = {'width': '210px'},
             	value = PIVOT_NUMBER_FOUR
             )
-    	])
+    	]
+    )
 
 def get_merge_thres_input():
 	return html.Div(
@@ -204,4 +224,16 @@ def get_merge_thres_input():
             	value = str(default_fibo_ext_merge_thres)
             ),
             html.Label('%', style = {'fontWeight': 'bolder', 'paddingLeft': '5px'})
-    	])
+    	]
+    )
+
+def get_report_content(df, path):
+	return html.Div(
+		children = [
+			html.Div(path, style = {'text-align': 'right', 'margin-top': '10px', 'margin-bottom': '10px', 'padding-right': '20px'}),
+			dash_table.DataTable(
+				df.to_dict('records'), [{"name": i, "id": i} for i in df.columns],
+				fixed_rows = dict(headers = True)
+			)
+		]
+	)

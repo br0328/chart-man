@@ -1,5 +1,5 @@
 
-from dash import dcc, html, callback, Output, Input, State
+from dash import dcc, html, dash_table, callback, Output, Input, State
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 from constant import *
@@ -30,16 +30,22 @@ parameter_div = get_parameter_div([
     get_analyze_button(),
     get_backtest_button()
 ])
-plot_div = get_plot_div()
-
-layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, plot_div)
+out_tab = get_out_tab(
+    {
+        'Plot': get_plot_div(),
+        'Report': get_report_div()
+    }
+)
+layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out_tab)
 
 @callback(
     [
-        Output('alert-dlg', 'is_open'),
-        Output('alert-msg', 'children'),
-        Output('alert-dlg', 'style'),        
-        Output('out-plot', 'children'),
+        Output('alert-dlg', 'is_open', allow_duplicate = True),
+        Output('alert-msg', 'children', allow_duplicate = True),
+        Output('alert-dlg', 'style', allow_duplicate = True),
+        Output('out_tab', 'value', allow_duplicate = True),
+        Output('out-plot', 'children', allow_duplicate = True),
+        Output('out-report', 'children', allow_duplicate = True)
     ],
     Input('analyze-button', 'n_clicks'),
     [
@@ -50,10 +56,11 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, plo
         State('cur-date-input', 'date'),
         State('pivot-input', 'value'),
         State('merge-input', 'value')
-    ]
+    ],
+    prevent_initial_call = True
 )
 def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date, pivot_number, merge_thres):
-    none_ret = [None]
+    none_ret = ['Plot', None, None]
 
     if n_clicks == 0: return alert_hide(none_ret)
     
@@ -63,7 +70,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
     if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
     
-    if get_duration(from_date, to_date) < zigzag_window:
+    if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
         return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
 
     if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
@@ -85,7 +92,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
     extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2)
     behaviors = get_fib_ext_behaviors(df, extensions, cur_date, get_safe_num(merge_thres))
 
-    return alert_success('Successfully analyzed.') + [update_plot(df, downfalls, extensions, behaviors, cur_date)]
+    return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date), None]
 
 @callback(
     [
@@ -114,6 +121,63 @@ def on_symbol_changed(symbol, from_date, cur_date):
         from_date = from_date.strftime(YMD_FORMAT)
 
     return [from_date, cur_date]
+
+@callback(
+    [
+        Output('alert-dlg', 'is_open', allow_duplicate = True),
+        Output('alert-msg', 'children', allow_duplicate = True),
+        Output('alert-dlg', 'style', allow_duplicate = True),
+        Output('out_tab', 'value', allow_duplicate = True),
+        Output('out-report', 'children', allow_duplicate = True)
+    ],
+    Input('backtest-button', 'n_clicks'),
+    [
+        State('symbol-input', 'value'),
+        State('from-date-input', 'date'),
+        State('to-date-input', 'date'),
+        State('interval-input', 'value'),
+        State('pivot-input', 'value'),
+        State('merge-input', 'value')
+    ],
+    prevent_initial_call = True
+)
+def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_number, merge_thres):
+    none_ret = ['Report', None]
+
+    if n_clicks == 0: return alert_hide(none_ret)
+    
+    if symbol is None: return alert_error('Invalid symbol. Please select one and retry.', none_ret)
+    if from_date is None: return alert_error('Invalid starting date. Please select one and retry.', none_ret)
+    if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
+    if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
+    if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
+    if interval == INTERVAL_QUARTERLY or interval == INTERVAL_YEARLY: return alert_error('Cannot support quarterly or monthly backtest.', none_ret)
+    if pivot_number is None: return alert_error('Invalid pivot number. Please select one and retry.', none_ret)
+    
+    if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
+        return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
+
+    try:
+        merge_thres = float(merge_thres) / 100
+    except Exception:
+        return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
+    
+    df = load_yf(symbol, from_date, to_date, interval)
+    pivot_number = PIVOT_NUMBER_ALL.index(pivot_number) + 1
+
+    records, success_rate, cum_profit = backtest_fib_extension(
+        df, interval, pivot_number, get_safe_num(merge_thres), symbol
+    )
+    csv_path = 'out/FIB_BKTEST_{}_{}_{}_{}_p{}_m{}%_sr={}%_cp={}%.csv'.format(
+        symbol, from_date, to_date, interval, pivot_number,
+        '{:.1f}'.format(100 * merge_thres),
+        '{:.1f}'.format(100 * success_rate),
+        '{:.1f}'.format(100 * cum_profit)
+    )
+    records.to_csv(csv_path, index = False)
+    report = get_report_content(records, csv_path)
+
+    return alert_success('Backtest Complted.') + ['Report', report]
 
 def update_plot(df, downfalls, extensions, behaviors, cur_date):
     fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.05, row_heights = [0.8, 0.2])

@@ -1,9 +1,12 @@
 
 from datetime import timedelta
+from collections import deque
 from constant import *
+from tqdm import tqdm
 from config import *
 from util import *
 import pandas as pd
+import numpy as np
 
 def get_zigzag(df, final_date):
 	pivots = []
@@ -187,11 +190,11 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 
 				has_mid_up, has_mid_down = False, False
 
-				for d in df.loc[df.loc[cur_date:milestone_date].index[1:-1]].iloc:
+				for d in df.loc[df.loc[start_date:milestone_date].index[1:-1]].iloc:
 					if (d.Close - lv) >= thres:
 						has_mid_up = True
 					elif (lv - d.Close) >= thres:
-						has_mid_down = False
+						has_mid_down = True
 
 				if (mlv - lv) >= thres:
 					if has_mid_down:
@@ -202,12 +205,12 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 					if has_mid_up:
 						behavior = 'Res_Semi_Res' if is_resist else 'Sup_Semi_Break'
 					else:
-						behavior = 'Res_Res' if is_resist else 'Sup_Break'						
-				else:
+						behavior = 'Res_Res' if is_resist else 'Sup_Break'
+				elif has_mid_up == has_mid_down:
 					end_date = get_nearest_forward_date(df, milestone_date + timedelta(days = milestone_forward))
 
 					if end_date is not None:
-						elv = df.loc[milestone_date]['Close']
+						elv = df.loc[end_date]['Close']
 
 						if (elv - lv) >= thres:
 							behavior = 'Res_Semi_Break' if is_resist else 'Sup_Semi_Sup'
@@ -217,7 +220,104 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 							behavior = 'Vibration'
 					else:
 						behavior = 'Vibration'
+				elif has_mid_up:
+					behavior = 'Res_Break' if is_resist else 'Sup_Sup'
+				else:
+					behavior = 'Res_Res' if is_resist else 'Sup_Break'
 
 		res[g[0]] = behavior
 
 	return res
+
+def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
+	cols = ['TransID', 'Position', 'EnterDate', 'EnterPrice', 'ExitDate', 'ExitPrice', 'Offset', 'Profit', 'CumProfit', 'X', ' ']
+
+	enter_date, position = None, None
+	trans_count, match_count, cum_profit = 0, 0, 0
+
+	signs = deque(maxlen = 4 if interval == INTERVAL_DAILY else 1)
+	res = pd.DataFrame(columns = cols)
+
+	for cur_date in tqdm(list(df.index), desc = 'backtesting', colour = 'red'):
+		cur_candle = df.loc[cur_date]
+		signs.append(np.sign(cur_candle['Close'] - cur_candle['Open']))
+
+		if enter_date is not None and (cur_date - enter_date).days < MIN_FIB_EXT_TRANS_DUR: continue
+
+		if signs.count(1) == len(signs):
+			cur_sign = 1
+		elif signs.count(-1) == len(signs):
+			cur_sign = -1
+		else:
+			cur_sign = 0
+
+		if cur_sign == 0: continue
+		if position == cur_sign: continue
+
+		min_cur_price = min(cur_candle['Close'], cur_candle['Open'])
+		max_cur_price = max(cur_candle['Close'], cur_candle['Open'])
+
+		zdf = get_zigzag(df, cur_date)
+		downfalls = get_recent_downfalls(zdf, pivot_number)
+		extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), cur_candle['Close'] * 2)
+
+		has_signal = False
+
+		for g in extensions:
+			lv = (g[0][-1] + g[-1][-1]) / 2
+
+			if min_cur_price <= lv and lv <= max_cur_price:
+				has_signal = True
+				break
+
+		if position is None:
+			position = cur_sign
+			enter_date = cur_date
+		else:
+			price_offset = cur_candle['Close'] - df.loc[enter_date]['Close']
+			true_sign = np.sign(price_offset)
+			trans_count += 1
+
+			if true_sign == position: match_count += 1
+
+			profit = position * price_offset / df.loc[enter_date]['Close']
+			cum_profit += profit	    	
+
+			record = [
+				trans_count,
+				'Long' if position > 0 else 'Short',
+				enter_date.strftime('%d %b %Y'),
+				'{:.4f}$'.format(df.loc[enter_date]['Close']),
+				cur_date.strftime('%d %b %Y'),
+				'{:.4f}$'.format(cur_candle['Close']),
+				'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
+				'{:.4f}%'.format(100 * profit),
+				'{:.4f}%'.format(100 * cum_profit),
+				'T' if true_sign == position else 'F',
+				' '
+			]
+			res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
+			enter_date, position = None, None
+
+	success_rate = (match_count / trans_count) if trans_count != 0 else 0
+	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
+	
+	res = pd.concat([res, pd.Series({
+		'TransID': 'Ticker:',
+		'Position': symbol,
+		'EnterDate': 'From: {}'.format(df.index[0].strftime('%d %b %Y')),
+		'EnterPrice': 'To: {}'.format(df.index[-1].strftime('%d %b %Y')),
+		'ExitDate': 'By: ' + interval,
+		'ExitPrice': 'Recent Pivots: {}'.format(pivot_number),
+		'Offset': 'Merge: {:.1f}%'.format(merge_thres * 100)
+		}).to_frame().T], ignore_index = True)
+
+	res = pd.concat([res, pd.Series({
+		'EnterDate': 'Success Rate:',
+		'EnterPrice': '{:.1f}%'.format(success_rate * 100),
+		'ExitDate': 'Cumulative Profit:',
+		'ExitPrice': '{:.1f}%'.format(cum_profit * 100)
+		}).to_frame().T], ignore_index = True)
+
+	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
+	return res, success_rate, cum_profit
