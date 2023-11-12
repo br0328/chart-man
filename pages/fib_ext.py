@@ -16,7 +16,7 @@ import plotly.express as px
 import numpy as np
 import dash
 
-dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension', order = 7)
+dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension', order = '07')
 
 scenario_div = get_scenario_div([
     get_symbol_input(),
@@ -27,8 +27,8 @@ parameter_div = get_parameter_div([
     get_cur_date_picker(),
     get_pivot_number_input(),
     get_merge_thres_input(),
-    get_analyze_button(),
-    get_backtest_button()
+    get_analyze_button('fib-ext'),
+    get_backtest_button('fib-ext')
 ])
 out_tab = get_out_tab({
     'Plot': get_plot_div(),
@@ -45,7 +45,7 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out
         Output('out-plot', 'children', allow_duplicate = True),
         Output('out-report', 'children', allow_duplicate = True)
     ],
-    Input('analyze-button', 'n_clicks'),
+    Input('fib-ext-analyze-button', 'n_clicks'),
     [
         State('symbol-input', 'value'),
         State('from-date-input', 'date'),
@@ -80,7 +80,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
     except Exception:
         return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
     
-    df = load_yf(symbol, from_date, to_date, interval)
+    df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
     cur_date = get_nearest_backward_date(df, get_timestamp(cur_date))
 
     if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
@@ -137,7 +137,7 @@ def on_symbol_changed(symbol, from_date, cur_date):
         Output('out_tab', 'value', allow_duplicate = True),
         Output('out-report', 'children', allow_duplicate = True)
     ],
-    Input('backtest-button', 'n_clicks'),
+    Input('fib-ext-backtest-button', 'n_clicks'),
     [
         State('symbol-input', 'value'),
         State('from-date-input', 'date'),
@@ -363,14 +363,13 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
     )
     fig.add_annotation(
         dict(
-            font = dict(color = "red", size=14),
+            font = dict(color = "red", size = 14),
             x = 1,
             y = np.log10(cur_price),
             showarrow = False,
             text = '------- {:.1f}'.format(cur_price),
             xref = "paper",
-            xanchor = 'left',
-            yref = "y"
+            xanchor = 'left'
         )
     )
     fig.add_shape(
@@ -378,13 +377,13 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
         x0 = cur_date,
         y0 = min(df['Low']),
         x1 = cur_date,
-        y1 = max(df['High']),
+        y1 = max(df['High']) if len(extensions) == 0 else extensions[-1][-1][-1],
         line = dict(color = 'darkgreen'),
         row = 1, col = 1
     )
     fig.add_annotation(
         dict(
-            font = dict(color = "darkgreen", size=14),
+            font = dict(color = "darkgreen", size = 14),
             x = cur_date,
             y = np.log10(min(df['Low'])),
             showarrow = False,
@@ -408,4 +407,4 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
         margin = dict(t = 40, b = 40, r = 100),
         showlegend = False
     )
-    return dcc.Graph(figure = fig)
+    return dcc.Graph(figure = fig, className = 'fib_ext_graph')

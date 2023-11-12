@@ -167,14 +167,14 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 		behavior, pv, start_date = None, None, None
 
 		for d in df.loc[cur_date:].iloc:
-			v = d.Close
+			v = d.High if is_resist else d.Low
 
 			if pv is not None:
 				if (pv < lv and v >= lv) or (pv > lv and v <= lv):
 					start_date = d.name
 					break
 
-			pv = v
+			pv = d.Low if is_resist else d.High
 
 		if start_date is not None:
 			milestone_forward = FIB_BEHAVIOR_MILESTONE

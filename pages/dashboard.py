@@ -5,6 +5,6 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import dash
 
-dash.register_page(__name__, path = '/', name = 'Dashboard', order = 0)
+dash.register_page(__name__, path = '/', name = 'Dashboard', order = '00')
 
 layout = get_page_title('Dahboard')

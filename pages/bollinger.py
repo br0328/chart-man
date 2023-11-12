@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import dash
 
-dash.register_page(__name__, path = '/bolinger', name = 'Bollinger Bands', order = 10)
+dash.register_page(__name__, path = '/bolinger', name = 'Bollinger Bands', order = '10')
 
 scenario_div = get_scenario_div([
 ])

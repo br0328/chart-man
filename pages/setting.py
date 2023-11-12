@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import dash
 
-dash.register_page(__name__, path = '/fibret', name = 'Fibonacci Retracement', order = '08')
+dash.register_page(__name__, path = '/setting', name = 'Settings', order = '11')
 
 scenario_div = get_scenario_div([
 ])
@@ -13,4 +13,4 @@ parameter_div = get_parameter_div([
 ])
 out_tab = get_out_tab({
 })
-layout = get_page_layout('Fibonacci|Retracement', scenario_div, parameter_div, out_tab)
+layout = get_page_layout('Settings', scenario_div, parameter_div, out_tab)

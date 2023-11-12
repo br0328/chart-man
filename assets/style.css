@@ -89,8 +89,12 @@
 	padding: 5px!important;
 }
 
-.dash-graph {
+.fib_ext_graph {
 	height: 1200px;
+}
+
+.new_high_graph {
+	height: 600px;
 }
 
 #out-report {

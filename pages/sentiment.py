@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import dash
 
-dash.register_page(__name__, path = '/sentiment', name = 'Sentiment Analysis', order = 9)
+dash.register_page(__name__, path = '/sentiment', name = 'Sentiment Analysis', order = '09')
 
 scenario_div = get_scenario_div([
 ])

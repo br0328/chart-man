@@ -132,25 +132,25 @@ def get_interval_input():
 		]
 	)
 
-def get_analyze_button():
+def get_analyze_button(prefix):
 	return html.Div(
 		className = 'scenario_button',
 		children = [
 			html.Button(
                 'ANALYZE',
-                id = 'analyze-button',
+                id = prefix + '-analyze-button',
                 n_clicks = 0
             ),
 		]
 	)
 
-def get_backtest_button():
+def get_backtest_button(prefix):
 	return html.Div(
 		className = 'scenario_button',
 		children = [
 			html.Button(
                 'BACKTEST',
-                id = 'backtest-button',
+                id = prefix + '-backtest-button',
                 n_clicks = 0
             ),
 		]
@@ -187,7 +187,8 @@ def get_out_tab(children):
 			dcc.Tabs(
 				className = 'out_tab',
 				id = 'out_tab',
-				children = [dcc.Tab(label = label, value = label, children = [child]) for label, child in children.items()]
+				children = [dcc.Tab(label = label, value = label, children = [child]) for label, child in children.items()],
+				value = list(children.keys())[0] if len(children) > 0 else ''
 			)
 		]
 	)
