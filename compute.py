@@ -3,6 +3,8 @@ from datetime import timedelta
 from collections import deque
 from constant import *
 from tqdm import tqdm
+from yahoo import *
+from data import *
 from config import *
 from util import *
 import pandas as pd
@@ -388,3 +390,55 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
 	return res, success_rate, cum_profit
+
+# Get information for dashboard
+def get_dashboard_info():
+	cols = ['Symbol', 'State', 'Current Price', 'New Highest']
+	res = pd.DataFrame(columns = cols)
+
+	for symbol in tqdm(load_stock_symbols(), desc = 'loading', colour = 'green'):
+		df = load_yf(symbol, '1800-01-01', '2100-01-01', INTERVAL_DAILY)
+
+		highs = df['High'].to_numpy()		
+		last_date = df.index[-1]
+
+		is_new_highest = (highs.argmax() == len(highs) - 1)
+		is_bullish = df.loc[last_date]['Close'] >= df.loc[last_date]['Open']
+
+		record = [
+			symbol,
+			'↑ Bullish' if is_bullish else '↓ Bearish',
+			'{:.4f}$'.format(df.loc[last_date]['Close']),
+			'√ {:.4f}'.format(highs[-1]) if is_new_highest else ''
+		]
+		res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
+
+	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
+	return res, last_date
+
+def is_pivot(candle, window, df):
+    if candle - window < 0 or candle + window >= len(df): return 0
+    
+    pivot_high = 1
+    pivot_low = 2
+    
+    for i in range(candle - window, candle + window + 1):
+        if df.iloc[candle].Low > df.iloc[i].Low: pivot_low = 0
+        if df.iloc[candle].High < df.iloc[i].High: pivot_high = 0
+    
+    if pivot_high and pivot_low:
+        return 3
+    elif pivot_high:
+        return pivot_high
+    elif pivot_low:
+        return pivot_low
+    else:
+        return 0
+
+def calculate_point_pos(row):
+    if row['isPivot'] == 2:
+        return row['Low'] - 1e-3
+    elif row['isPivot'] == 1:
+        return row['High'] + 1e-3
+    else:
+        return np.nan

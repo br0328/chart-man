@@ -93,6 +93,10 @@
 	height: 1200px;
 }
 
+.trendline_graph {
+	height: 1200px;
+}
+
 .new_high_graph {
 	height: 600px;
 }
@@ -105,6 +109,16 @@
 	text-align: center;
 	background: black;
 	color: white;
+}
+
+#dash-info th {
+	text-align: center;
+	background: black;
+	color: white;
+}
+
+#dash-info td {
+	text-align: center;
 }
 
 .dash-fixed-content {

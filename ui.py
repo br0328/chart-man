@@ -213,6 +213,19 @@ def get_pivot_number_input():
     	]
     )
 
+def get_level_number_input():
+	return html.Div(
+        className = 'scenario_block',
+        children = [
+            dcc.Dropdown(
+            	id = 'level-input',
+            	placeholder = 'Levels',
+            	options = [str(2 * i) for i in range(1, 6)],
+            	style = {'width': '210px'}
+            )
+    	]
+    )
+
 def get_merge_thres_input():
 	return html.Div(
         className = 'scenario_block',
@@ -237,4 +250,41 @@ def get_report_content(df, path):
 				fixed_rows = dict(headers = True)
 			)
 		]
+	)
+
+def get_dashboard_content(df, last_date):
+	return html.Div(
+		children = [
+			html.H2(
+				'The latest trading day available is {}.'.format(last_date.strftime(' %d %b %Y')),
+				style = {'marginBottom': '20px'}
+			),
+			dash_table.DataTable(
+				df.to_dict('records'), [{"name": i, "id": i} for i in df.columns],
+				fixed_rows = dict(headers = True),
+				style_table = {
+					'height': '800px',
+					'max-height': '800px',
+					'width': '600px'
+				},
+				style_data_conditional = [{
+					'if': {'row_index': 'even'},
+					'backgroundColor': 'rgb(250, 250, 250)',
+				}],
+				style_cell_conditional = [
+					{
+						'if': {'column_id': c},
+						'textAlign': 'right'
+					} for c in ['Current Price', 'New Highest']
+				],
+				style_header = {
+					'fontWeight': 'bold',
+					'textAlign': 'center'
+				}
+			)
+		],
+		style = {
+			'display': 'inline-block',
+			'text-align': 'center'
+		}
 	)

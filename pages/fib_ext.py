@@ -109,12 +109,14 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
 # Triggered when Symbol combo box changed
 @callback(
     [
-        Output('from-date-input', 'date'), Output('cur-date-input', 'date')
+        Output('from-date-input', 'date', allow_duplicate = True),
+        Output('cur-date-input', 'date', allow_duplicate = True)
     ],
     Input('symbol-input', 'value'),
     [
         State('from-date-input', 'date'), State('cur-date-input', 'date')
-    ]
+    ],
+    prevent_initial_call = True
 )
 def on_symbol_changed(symbol, from_date, cur_date):
     if symbol is None: return [from_date, cur_date]
@@ -233,7 +235,7 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
             bmark_x = df.index[int(len(df) * (len(g) + 2) * fold_step)]
             bmark_y = lv
         else:
-            # For a single level g, Parse the level
+            # For a single level g, Parse the level tuple
             # i: the index of pivot downfall
             # hd, zd: hundred date and zero date
             # hv, zv: hundred price and zero price

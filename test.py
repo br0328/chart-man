@@ -10,6 +10,8 @@ def test_cached_df():
 	print(df[:-1])
 	print('###')
 
+	print(df.columns)
+
 	for d in df.index:
 		if str(df.loc[d]['Close']).lower().startswith('na'):
 			print(d)
