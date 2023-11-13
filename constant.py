@@ -31,6 +31,6 @@ FIB_EXT_MARKERS = {
 	'Vibration': ('diamond', 'white', 0, 'Vibration')
 }
 
-PLOT_COLORS_DARK = ['blue', 'orange', 'indigo', 'magenta', 'green', 'red', 'black']
+PLOT_COLORS_DARK = ['blue', 'brown', 'indigo', 'magenta', 'green', 'red', 'black']
 
 NEW_HIGH_DAY_MARGIN = 60

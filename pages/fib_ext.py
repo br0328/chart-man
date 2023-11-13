@@ -1,5 +1,5 @@
 
-from dash import dcc, html, dash_table, callback, Output, Input, State
+from dash import dcc, callback, Output, Input, State
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 from constant import *
@@ -10,14 +10,14 @@ from plot import *
 from util import *
 from data import *
 from ui import *
-import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-import plotly.express as px
 import numpy as np
 import dash
 
+# Fibonacci Extension Page
 dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension', order = '07')
 
+# Page Layout
 scenario_div = get_scenario_div([
     get_symbol_input(),
     get_date_range(),
@@ -36,6 +36,7 @@ out_tab = get_out_tab({
 })
 layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out_tab)
 
+# Triggered when Analyze button clicked
 @callback(
     [
         Output('alert-dlg', 'is_open', allow_duplicate = True),
@@ -58,7 +59,7 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out
     prevent_initial_call = True
 )
 def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date, pivot_number, merge_thres):
-    none_ret = ['Plot', None, None]
+    none_ret = ['Plot', None, None] # Padding return values
 
     if n_clicks == 0: return alert_hide(none_ret)
     
@@ -68,6 +69,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
     if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
     
+    # If duration is too short, Fibonacci analysis is not feasible.
     if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
         return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
 
@@ -81,18 +83,21 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
         return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
     
     df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
-    cur_date = get_nearest_backward_date(df, get_timestamp(cur_date))
+    cur_date = get_nearest_backward_date(df, get_timestamp(cur_date)) # Adjust the pivot date to the nearest valid point
 
     if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
     
-    zdf = get_zigzag(df, cur_date)
+    zdf = get_zigzag(df, cur_date) # Find all possible Fibonacci pivot pairs
     pivot_number = PIVOT_NUMBER_ALL.index(pivot_number) + 1
 
-    downfalls = get_recent_downfalls(zdf, pivot_number)
-    extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2)
-    behaviors = get_fib_ext_behaviors(df, extensions, cur_date, get_safe_num(merge_thres))
+    downfalls = get_recent_downfalls(zdf, pivot_number) # Reduce Fibonacci pivot pairs into only recent ones
+    extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2) # Merge and sort Fibonacci extension levels
+    behaviors = get_fib_ext_behaviors(df, extensions, cur_date, get_safe_num(merge_thres)) # Compute behaviors of each extension level
 
+    # Generate table report
     records = analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, merge_thres, interval, symbol)
+
+    # CSV output and visualization
     csv_path = 'out/FIB-EXT-ANALYZE_{}_{}_{}_{}_{}_p{}_m{}%.csv'.format(
         symbol, from_date, cur_date.strftime(YMD_FORMAT), to_date, interval, pivot_number, '{:.1f}'.format(100 * merge_thres)
     )
@@ -101,6 +106,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
 
     return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date), report]
 
+# Triggered when Symbol combo box changed
 @callback(
     [
         Output('from-date-input', 'date'), Output('cur-date-input', 'date')
@@ -113,6 +119,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
 def on_symbol_changed(symbol, from_date, cur_date):
     if symbol is None: return [from_date, cur_date]
 
+    # Adjust start date considering IPO date of the symbol chosen
     ipo_date = load_stake().loc[symbol]['ipo']
 
     if from_date is None:
@@ -120,6 +127,7 @@ def on_symbol_changed(symbol, from_date, cur_date):
     elif from_date < ipo_date:
         from_date = ipo_date
 
+    # If pivot date is not selected yet, automatically sets it as the 2/3 point of [start-date, end-date] range.
     if cur_date is None:
         from_date = get_timestamp(from_date)
         days = (datetime.now() - from_date).days
@@ -129,6 +137,7 @@ def on_symbol_changed(symbol, from_date, cur_date):
 
     return [from_date, cur_date]
 
+# Triggered when Backtest button clicked
 @callback(
     [
         Output('alert-dlg', 'is_open', allow_duplicate = True),
@@ -161,6 +170,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
     if interval == INTERVAL_QUARTERLY or interval == INTERVAL_YEARLY: return alert_error('Cannot support quarterly or monthly backtest.', none_ret)
     if pivot_number is None: return alert_error('Invalid pivot number. Please select one and retry.', none_ret)
     
+    # If duration is too short, Fibonacci backtest is not feasible.
     if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
         return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
 
@@ -172,6 +182,10 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
     df = load_yf(symbol, from_date, to_date, interval)
     pivot_number = PIVOT_NUMBER_ALL.index(pivot_number) + 1
 
+    # Get results of backtest for file output and visualization
+    # records: table-format data
+    # success_rate: accuracy of transaction positions
+    # cum_profit: cumulated profit on percentage basis    
     records, success_rate, cum_profit = backtest_fib_extension(
         df, interval, pivot_number, get_safe_num(merge_thres), symbol
     )
@@ -186,82 +200,56 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
 
     return alert_success('Backtest Complted.') + ['Report', report]
 
+# Major plotting procedure
 def update_plot(df, downfalls, extensions, behaviors, cur_date):
+    # Set two subplots: primary chart and volume chart
     fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.05, row_heights = [0.8, 0.2])
-    day_span = (df.index[-1] - df.index[0]).days
+    day_span = (df.index[-1] - df.index[0]).days # Total span of duration
 
-    pivot_wid = timedelta(days = int(day_span * 0.025))
-    fold_step, dash_indent = 0.01, 0.07
+    pivot_wid = timedelta(days = int(day_span * 0.025)) # Length of line starting from a downfall pivot point
+    fold_step, dash_indent = 0.01, 0.07 # Indents and steps for clear visualization of extension level values
 
-    cur_price = df.loc[cur_date]['Close']
-    extensions.sort(key = lambda g: abs(cur_price - (g[0][-1] + g[-1][-1]) / 2))
+    cur_price = df.loc[cur_date]['Close'] # The price of the pivot date
+    extensions.sort(key = lambda g: abs(cur_price - (g[0][-1] + g[-1][-1]) / 2)) # Sort extension levels by cloeness to the pivot price
 
-    upper_count, lower_count = 0, 0
+    upper_count, lower_count = 0, 0 # Numbers of upper and lower levels compared to the pivot price (Only 5 level pricess are annotated)
 
+    # Loop of extension levels
+    # g: each extension level group (len(g) = 1 for a single level, len(g) > 1 for a merged level)
     for g in extensions:
-        b = behaviors[g[0]]
+        b = behaviors[g[0]] # Behavior of level group g (Breakout, Support, Resistance, etc.)
 
-        if len(g) > 1:
-            fig.add_trace(
-                go.Scatter(
-                    x = df.index,
-                    y = np.repeat(g[0][-1], len(df)),
-                    fill = None,
-                    line = dict(color = 'darkgray', width = 0.5)
-                ),
-                row = 1, col = 1
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x = df.index,
-                    y = np.repeat(g[-1][-1], len(df)),
-                    fill = 'tonexty',
-                    line = dict(color = 'darkgray', width = 0.5)
-                ),
-                row = 1, col = 1
-            )
-            lv = (g[0][-1] + g[-1][-1]) / 2
+        if len(g) > 1: # For a merged level
+            lv = (g[0][-1] + g[-1][-1]) / 2 # Mid-price of a merged level
+
+            # Draw tonexty filled line with merged width
+            draw_tonexty_hline(fig, df.index, g[0][-1], g[-1][-1], 'darkgray', 0.5)
 
             for i, e in enumerate(g):
-                fig.add_trace(
-                    go.Scatter(
-                        mode = 'markers',
-                        x = [df.index[int(len(df) * (i + 1) * fold_step)]],
-                        y = [lv],
-                        marker = dict(color = PLOT_COLORS_DARK[e[0]], symbol = 'circle')
-                    ),
-                    row = 1, col = 1
-                )
+                # Plot colored markers to show which downfalls formed this merged group
+                draw_marker(fig, df.index[int(len(df) * (i + 1) * fold_step)], lv, 'circle', PLOT_COLORS_DARK[e[0]])
 
+            # bmark_x, bmark_y: The position of behavior marker
             bmark_x = df.index[int(len(df) * (len(g) + 2) * fold_step)]
             bmark_y = lv
         else:
+            # For a single level g, Parse the level
+            # i: the index of pivot downfall
+            # hd, zd: hundred date and zero date
+            # hv, zv: hundred price and zero price
+            # j: the index of Fibonacci level
+            # lv: the price of the level
             i, hd, zd, hv, zv, j, lv = g[0]
-            x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) + 0.005)))
+            x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) + 0.005))) # Calculate x-indent
 
-            fig.add_shape(
-                type = "line",
-                x0 = x,
-                y0 = lv,
-                x1 = df.index[-1],
-                y1 = lv,
-                line = dict(color = PLOT_COLORS_DARK[i], width = 1, dash = 'dot'),
-                row = 1, col = 1
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x = [x],
-                    y = [lv],
-                    mode = "text",
-                    text = ['{:.1f}%     '.format(FIB_EXT_LEVELS[j] * 100)],
-                    textposition = "middle left",
-                    textfont = dict(color = PLOT_COLORS_DARK[i])
-                ),
-                row = 1, col = 1
-            )
+            draw_hline_shape(fig, x, df.index[-1], lv, PLOT_COLORS_DARK[i], dash = 'dot') # Draw dot line
+            draw_text(fig, x, lv, '{:.1f}%     '.format(FIB_EXT_LEVELS[j] * 100), 'middle left', PLOT_COLORS_DARK[i]) # Draw percent level text
+
+            # bmark_x, bmark_y: The position of behavior marker
             bmark_x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) - 0.004)))
             bmark_y = lv
 
+        # Mid-price of a merged level (for a single level, its price value itself)
         lv = (g[0][-1] + g[-1][-1]) / 2
         is_near = False
 
@@ -274,135 +262,47 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
                 is_near = True
                 lower_count += 1
 
-        if is_near:
-            fig.add_annotation(
-                dict(
-                    font = dict(color = "black" if len(g) > 1 else PLOT_COLORS_DARK[g[0][0]]),
-                    x = 1,
-                    y = np.log10(lv),
-                    showarrow = False,
-                    text='- {:.1f}'.format(lv),
-                    xref = "paper",
-                    xanchor = 'left',
-                    yref = "y"
-                )
-            )
+        if is_near: # Only 5 upper levels and 5 lower levels are annotated
+            draw_annotation(fig, 1, np.log10(lv), '- {:.1f}'.format(lv), xref = 'paper', xanchor = 'left',
+                color = 'black' if len(g) > 1 else PLOT_COLORS_DARK[g[0][0]])
 
+        # Plot behavior marks
         if b is not None:
-            fig.add_trace(
-                go.Scatter(
-                    mode = "markers",
-                    x = [bmark_x],
-                    y = [bmark_y],
-                    marker = dict(
-                        symbol = FIB_EXT_MARKERS[b][0],                        
-                        color = FIB_EXT_MARKERS[b][1],
-                        size = 7.5,
-                        angle = FIB_EXT_MARKERS[b][2],
-                        line = dict(
-                            color = "black",
-                            width = 1
-                        )
-                    )
-                )
-            )
+            draw_marker(fig, bmark_x, bmark_y, FIB_EXT_MARKERS[b][0], FIB_EXT_MARKERS[b][1], 7.5, FIB_EXT_MARKERS[b][2], 'black')
 
+    # Visualize pivot downfalls
+    # Reversed loop due to overlay issues
     for j, f in enumerate(downfalls[::-1]):
-        hd, zd = f
-        i = len(downfalls) - 1 - j
+        hd, zd = f # Hundred date and zero date
+        i = len(downfalls) - 1 - j # Original index
 
-        fig.add_shape(
-            type = "line",
-            x0 = hd,
-            y0 = df.loc[hd]['Close'],
-            x1 = zd + pivot_wid,
-            y1 = df.loc[hd]['Close'],
-            line = dict(color = PLOT_COLORS_DARK[i], width = 1.5),
-            row = 1, col = 1
-        )
-        fig.add_shape(
-            type = "line",
-            x0 = zd,
-            y0 = df.loc[zd]['Close'],
-            x1 = zd + pivot_wid,
-            y1 = df.loc[zd]['Close'],
-            line = dict(color = PLOT_COLORS_DARK[i], width = 1.5),
-            row = 1, col = 1
-        )
-        fig.add_trace(
-            go.Scatter(
-                x = [hd],
-                y = [df.loc[hd]['Close']],
-                mode = "text",
-                text = ['{:.1f}'.format(df.loc[hd]['Close'])],
-                textposition = "top center",
-                textfont = dict(color = PLOT_COLORS_DARK[i])
-            ),
-            row = 1, col = 1
-        )
-        fig.add_trace(
-            go.Scatter(
-                x = [zd],
-                y = [df.loc[zd]['Close']],
-                mode = "text",
-                text = ['{:.1f}'.format(df.loc[zd]['Close'])],
-                textposition = "bottom center",
-                textfont = dict(color = PLOT_COLORS_DARK[i])
-            ),
-            row = 1, col = 1
-        )
+        draw_hline_shape(fig, hd, zd + pivot_wid, df.loc[hd]['Close'], PLOT_COLORS_DARK[i], 1.5) # Hundred line plot
+        draw_hline_shape(fig, zd, zd + pivot_wid, df.loc[zd]['Close'], PLOT_COLORS_DARK[i], 1.5) # Zero line plot
 
-    fig.add_shape(
-        type = "line",
-        x0 = cur_date,
-        y0 = cur_price,
-        x1 = df.index[-1],
-        y1 = cur_price,
-        line = dict(color = 'red', width = 2, dash = 'dash'),
-        row = 1, col = 1
-    )
-    fig.add_annotation(
-        dict(
-            font = dict(color = "red", size = 14),
-            x = 1,
-            y = np.log10(cur_price),
-            showarrow = False,
-            text = '------- {:.1f}'.format(cur_price),
-            xref = "paper",
-            xanchor = 'left'
-        )
-    )
-    fig.add_shape(
-        type = "line",
-        x0 = cur_date,
-        y0 = min(df['Low']),
-        x1 = cur_date,
-        y1 = max(df['High']) if len(extensions) == 0 else extensions[-1][-1][-1],
-        line = dict(color = 'darkgreen'),
-        row = 1, col = 1
-    )
-    fig.add_annotation(
-        dict(
-            font = dict(color = "darkgreen", size = 14),
-            x = cur_date,
-            y = np.log10(min(df['Low'])),
-            showarrow = False,
-            text = cur_date.strftime(' %d %b %Y') + ' →',
-            xanchor = "left",
-            yanchor = "bottom",
-            yref = "y"
-        )
-    )
+        draw_text(fig, hd, df.loc[hd]['Close'], '{:.1f}'.format(df.loc[hd]['Close']), 'top center', PLOT_COLORS_DARK[i]) # Hundred price plot
+        draw_text(fig, zd, df.loc[zd]['Close'], '{:.1f}'.format(df.loc[zd]['Close']), 'bottom center', PLOT_COLORS_DARK[i]) # Zero price plot
+
+    # Pivot price plot
+    draw_hline_shape(fig, cur_date, df.index[-1], cur_price, 'red', 2, 'dash')
+    draw_annotation(fig, 1, np.log10(cur_price), '------- {:.1f}'.format(cur_price), 'paper', xanchor = 'left', color = 'red', size = 14)
+
+    # Pivot date plot
+    draw_vline_shape(fig, cur_date, min(df['Low']), max(df['High']) if len(extensions) == 0 else extensions[-1][-1][-1], 'darkgreen')
+    draw_annotation(fig, cur_date, np.log10(min(df['Low'])), cur_date.strftime(' %d %b %Y') + ' →',
+        xanchor = 'left', yanchor = 'bottom', color = 'darkgreen', size = 14)
+
+    # Draw candlestick and volume chart
     fig.add_trace(get_candlestick(df), row = 1, col = 1)
     fig.add_trace(get_volume_bar(df), row = 2, col = 1)
 
     update_shared_xaxes(fig, df, 2)
 
-    fig.update_yaxes(type = "log", title_text = "Price", row = 1, col = 1)
-    fig.update_yaxes(title_text = "Volume", row = 2, col = 1)
+    # Apply logarithm to candlestick y axis
+    fig.update_yaxes(type = 'log', title_text = 'Price', row = 1, col = 1)
+    fig.update_yaxes(title_text = 'Volume', row = 2, col = 1)
 
     fig.update_layout(
-        yaxis_tickformat = "0",
+        yaxis_tickformat = '0',
         height = 1200,
         margin = dict(t = 40, b = 40, r = 100),
         showlegend = False

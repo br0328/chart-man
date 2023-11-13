@@ -16,8 +16,10 @@ import plotly.express as px
 import numpy as np
 import dash
 
+# New High Page
 dash.register_page(__name__, path = '/newhigh', name = 'New Highs', order = '01')
 
+# Page Layout
 scenario_div = get_scenario_div([
 	get_symbol_input(),
 	get_interval_input(),
@@ -27,6 +29,7 @@ out_tab = get_out_tab({'Plot': get_plot_div()})
 
 layout = get_page_layout('New Highs', scenario_div, html.Div(), out_tab)
 
+# Triggered when Analyze button clicked
 @callback(
     [
         Output('alert-dlg', 'is_open', allow_duplicate = True),
@@ -53,6 +56,8 @@ def on_analyze_clicked(n_clicks, symbol, interval):
 
     return alert_success('Analysis Completed') + [update_plot(df, interval)]
 
+# If it has the new highest price today, plot both today's price and previous highest price.
+# If today's price is not the new highest, plot only the highest price.
 def update_plot(df, interval):
 	margin = NEW_HIGH_DAY_MARGIN if interval == INTERVAL_DAILY else 5
 	highs = df['High'].to_numpy()
@@ -69,17 +74,8 @@ def update_plot(df, interval):
 		second_max_idx = None
 		df = df.iloc[max_idx - margin:]
 
-	fig = go.Figure(
-		data = [
-			go.Candlestick(
-				x = df.index,
-				open = df['Open'],
-				close = df['Close'],
-				high = df['High'],
-				low = df['Low']
-			)
-		]
-	)
+	fig = go.Figure(data = [get_candlestick(df)])
+
 	fig.update_yaxes(type = 'log')
 	fig.update_layout(xaxis_rangeslider_visible = False)
     
@@ -90,106 +86,24 @@ def update_plot(df, interval):
 		showlegend = False
 	)
 	lines = [
-		dict(
-			type = 'line',
-			line = dict(
-				color = 'blue',
-				width = 1,
-				dash = 'dot'
-			),
-			x0 = 0,
-			x1 = 1,
-			xref = 'paper',
-			y0 = highs[max_idx],
-			y1 = highs[max_idx]
-		),
-		dict(
-			type = 'line',
-			line = dict(
-				color = 'blue',
-				width = 0.5,
-				dash = 'dot'
-			),
-			x0 = max_date,
-			x1 = max_date,
-			y0 = 0,
-			y1 = 1,
-			yref = 'paper'
-		)
+		get_complete_hline(highs[max_idx], 'blue', 'dot', 0.5),
+		get_complete_vline(max_date, 'blue', 'dot', 0.5)
 	]
-	fig.add_annotation(
-		dict(
-			font = dict(color = "blue", size = 14),
-			x = max_date,
-			y = np.log10(min(df['Low'])),
-			showarrow = False,
-			text = max_date.strftime(' %d %b %Y'),
-			xanchor = "left" if second_max_idx is None else "right",
-			yanchor = "bottom"
-		)
-	)
-	fig.add_annotation(
-		dict(
-			font = dict(color = "blue", size = 14),
-			x = max_date,
-			y = np.log10(highs[max_idx]),
-			showarrow = False,
-			text = '{:.4f}'.format(highs[max_idx]),
-			xanchor = "left" if second_max_idx is None else "right",
-			yanchor = "bottom"
-		)
-	)
+	draw_annotation(fig, max_date, np.log10(min(df['Low'])), max_date.strftime(' %d %b %Y'),
+		xanchor = 'left' if second_max_idx is None else 'right', yanchor = 'bottom', color = 'blue', size = 14)
+	draw_annotation(fig, max_date, np.log10(highs[max_idx]), '{:.4f}'.format(highs[max_idx]),
+		xanchor = 'left' if second_max_idx is None else 'right', yanchor = 'bottom', color = 'blue', size = 14)
+
 	if second_max_idx is not None:
 		lines.extend([
-			dict(
-				type = 'line',
-				line = dict(
-					color = 'brown',
-					width = 1,
-					dash = 'dot'
-				),
-				x0 = 0,
-				x1 = 1,
-				xref = 'paper',
-				y0 = highs[second_max_idx],
-				y1 = highs[second_max_idx]
-			),
-			dict(
-				type = 'line',
-				line = dict(
-					color = 'brown',
-					width = 0.5,
-					dash = 'dot'
-				),
-				x0 = second_max_date,
-				x1 = second_max_date,
-				y0 = 0,
-				y1 = 1,
-				yref = 'paper'
-			)
+			get_complete_hline(highs[second_max_idx], 'brown', 'dot', 0.5),
+			get_complete_vline(second_max_date, 'brown', 'dot', 0.5)
 		])
-		fig.add_annotation(
-			dict(
-				font = dict(color = "brown", size = 14),
-				x = second_max_date,
-				y = np.log10(min(df['Low'])),
-				showarrow = False,
-				text = second_max_date.strftime(' %d %b %Y'),
-				xanchor = "left",
-				yanchor = "bottom"
-			)
-		)
-		fig.add_annotation(
-			dict(
-				font = dict(color = "brown", size = 14),
-				x = second_max_date,
-				y = np.log10(highs[second_max_idx]),
-				showarrow = False,
-				text = '{:.4f}'.format(highs[second_max_idx]),
-				xanchor = "left",
-				yanchor = "bottom"
-			)
-		)
+		draw_annotation(fig, second_max_date, np.log10(min(df['Low'])), second_max_date.strftime(' %d %b %Y'),
+			xanchor = 'left', yanchor = 'bottom', color = 'brown', size = 14)
+		draw_annotation(fig, second_max_date, np.log10(highs[second_max_idx]), '{:.4f}'.format(highs[second_max_idx]),
+			xanchor = 'left', yanchor = 'bottom', color = 'brown', size = 14)
+
 	fig.update_layout(shapes = lines)
 
 	return dcc.Graph(figure = fig, className = 'new_high_graph')

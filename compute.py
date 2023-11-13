@@ -8,6 +8,11 @@ from util import *
 import pandas as pd
 import numpy as np
 
+"""
+Core logic modules
+"""
+
+# Get local peak points using Zig-Zag algorithm
 def get_zigzag(df, final_date):
 	pivots = []
 
@@ -70,9 +75,9 @@ def get_zigzag(df, final_date):
 		res = pd.concat([res, pd.Series(r).to_frame().T], ignore_index = True)
 
 	res.set_index('Date', inplace = True)
-
 	return res
 
+# Refine peak points by merging Zig-Zag peaks
 def merge_zigzag_pivots(pivots):
 	if len(pivots) < 3: return pivots	
 	res, i = [], 0
@@ -98,6 +103,7 @@ def merge_zigzag_pivots(pivots):
 
 	return res
 
+# Get recent downfall pivot pairs from Zig-Zag peak points
 def get_recent_downfalls(zdf, count):
 	res = []
 
@@ -116,6 +122,7 @@ def get_recent_downfalls(zdf, count):
 
 	return res[::-1]
 
+# Get Fibonacci extension levels from a given set of downfall pivot pairs
 def get_fib_extensions(zdf, downfalls, merge_thres, suppress_level):
 	all_levels = []
 
@@ -156,6 +163,7 @@ def get_fib_extensions(zdf, downfalls, merge_thres, suppress_level):
 
 	return res
 
+# Compute behaviors of Fibonacci extension levels
 def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 	res = {}
 	cur_price = df.loc[cur_date]['Close']
@@ -229,6 +237,7 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 
 	return res
 
+# Generate table-format data for Fibonacci extension analysis
 def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, merge_thres, interval, symbol):
 	cols = ['ExtID', 'Level', 'Type', 'Width', 'Behavior', 'Description', ' ']
 	res = pd.DataFrame(columns = cols)
@@ -274,6 +283,19 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
 	return res
 
+# Backtest using Fibonacci extension strategy
+#
+# (Logic)
+# For each date point, get recent downfall pivot pairs (Hundred-Zero pairs)
+# Calculate Fibonacci extension levels
+# If the current date point crosses an extension level, it's time to send signal.
+# If it falls to cross, a Short signal is raised.
+# If it rises to cross, a Long signal is raised.
+# With Short signal, either put Short position or seal ongoing Long position.
+# With Long signal, either put Long position or seal ongoing Short position.
+#
+# (Return)
+# Transaction records, position accuracy rate and cumulated profit on percentage basis
 def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 	cols = ['TransID', 'Position', 'EnterDate', 'EnterPrice', 'ExitDate', 'ExitPrice', 'Offset', 'Profit', 'CumProfit', 'X', ' ']
 
