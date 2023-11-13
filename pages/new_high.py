@@ -1,7 +1,5 @@
 
-from dash import dcc, html, dash_table, callback, Output, Input, State
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from dash import dcc, html, callback, Output, Input, State
 from constant import *
 from compute import *
 from config import *
@@ -10,9 +8,7 @@ from plot import *
 from util import *
 from data import *
 from ui import *
-import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-import plotly.express as px
 import numpy as np
 import dash
 

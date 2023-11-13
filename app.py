@@ -5,8 +5,11 @@ from ui import *
 import dash_bootstrap_components as dbc
 import pandas as pd
 import dash
+import os
 
 initialize_data()
+
+if not os.path.exists('./out/'): os.mkdir('./out')
 
 app = dash.Dash(__name__, use_pages = True, external_stylesheets = [dbc.themes.SANDSTONE])
 
