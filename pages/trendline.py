@@ -11,6 +11,7 @@ from util import *
 from data import *
 from ui import *
 import plotly.graph_objects as go
+import pandas_ta as ta
 import numpy as np
 import dash
 
@@ -61,6 +62,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, level):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
     if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
+    if level is None: return alert_error('Invalid level. Please select one and retry.', none_ret)
 
     level = int(level)
     df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
@@ -117,6 +119,14 @@ def update_plot(df, level):
         elif is_peak_l:
             peaks_x.append(all_dates[i])
             peaks_y.append(l)
+
+    # Calculate ATR using pandas_ta
+    # atr = ta.atr(high = filtered_df['High'], low=filtered_df['Low'], close=filtered_df['Close'], length=14)
+
+    # atr_multiplier = 2
+    # stop_percentage = atr.iloc[-1] * atr_multiplier / filtered_df['Close'].iloc[-1]
+    # profit_percentage = (1 + (level - 1) / 4) * stop_percentage
+    # print(f"stoploss: {stop_percentage:.2f}%_takeprofit: {profit_percentage:.2f}%")
 
 	# Set two subplots: primary chart and volume chart
     fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.05, row_heights = [0.8, 0.2])
