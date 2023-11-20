@@ -13,7 +13,7 @@ if not os.path.exists('./out/'): os.mkdir('./out')
 
 app = dash.Dash(__name__, use_pages = True, external_stylesheets = [dbc.themes.SANDSTONE])
 
-app.title = 'Chartman'
+app.title = 'Mind-Wealth'
 app.layout = get_app_layout()
 
 app.run(debug = False, host = 'localhost', port = 1000)

@@ -27,30 +27,30 @@ layout = get_page_layout('New Highs', scenario_div, html.Div(), out_tab)
 
 # Triggered when Analyze button clicked
 @callback(
-    [
-        Output('alert-dlg', 'is_open', allow_duplicate = True),
-        Output('alert-msg', 'children', allow_duplicate = True),
-        Output('alert-dlg', 'style', allow_duplicate = True),
-        Output('out-plot', 'children', allow_duplicate = True)
-    ],
-    Input('new-high-analyze-button', 'n_clicks'),
-    [
-        State('symbol-input', 'value'),
-        State('interval-input', 'value')
-    ],
-    prevent_initial_call = True
+	[
+		Output('alert-dlg', 'is_open', allow_duplicate = True),
+		Output('alert-msg', 'children', allow_duplicate = True),
+		Output('alert-dlg', 'style', allow_duplicate = True),
+		Output('out-plot', 'children', allow_duplicate = True)
+	],
+	Input('new-high-analyze-button', 'n_clicks'),
+	[
+		State('symbol-input', 'value'),
+		State('interval-input', 'value')
+	],
+	prevent_initial_call = True
 )
 def on_analyze_clicked(n_clicks, symbol, interval):
-    none_ret = [None]
+	none_ret = [None]
 
-    if n_clicks == 0: return alert_hide(none_ret)
-    
-    if symbol is None: return alert_error('Invalid symbol. Please select one and retry.', none_ret)
-    if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
-    
-    df = load_yf(symbol, '1800-01-01', '2100-01-01', interval, fit_today = True)
+	if n_clicks == 0: return alert_hide(none_ret)
+	
+	if symbol is None: return alert_error('Invalid symbol. Please select one and retry.', none_ret)
+	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
+	
+	df = load_yf(symbol, '1800-01-01', '2100-01-01', interval, fit_today = True)
 
-    return alert_success('Analysis Completed') + [update_plot(df, interval)]
+	return alert_success('Analysis Completed') + [update_plot(df, interval)]
 
 # If it has the new highest price today, plot both today's price and previous highest price.
 # If today's price is not the new highest, plot only the highest price.
@@ -74,7 +74,7 @@ def update_plot(df, interval):
 
 	fig.update_yaxes(type = 'log')
 	fig.update_layout(xaxis_rangeslider_visible = False)
-    
+	
 	fig.update_layout(
 		yaxis_tickformat = "0",
 		height = 600,

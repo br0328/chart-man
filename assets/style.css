@@ -154,14 +154,14 @@ h2 {
 	font-size: 14px;
 }
 
-.alert {    
-    position: fixed;
-    right: 40px;
-    top: 120px;
-    padding: 10px 16px 1px 16px;
-    width: fit-content;
-    border: none;
-    border-radius: 0;
+.alert {	
+	position: fixed;
+	right: 40px;
+	top: 120px;
+	padding: 10px 16px 1px 16px;
+	width: fit-content;
+	border: none;
+	border-radius: 0;
 }
 
 .alert h3 {
@@ -169,32 +169,32 @@ h2 {
 }
 
 button {
-    padding: 6px 30px 6px 30px;
-    background-color: #004C87;
-    color: #FFFFFF;
-    border-width: thin;
-    border: linen;
-    border-radius: 10px;
-    font-size: 12px;
+	padding: 6px 30px 6px 30px;
+	background-color: #004C87;
+	color: #FFFFFF;
+	border-width: thin;
+	border: linen;
+	border-radius: 10px;
+	font-size: 12px;
 }
 
 input {
-    text-align: center;
-    border-color: lightgray;
-    border-width: thin;
-    border-style: solid;
-    padding: 4px 0 4px 0;
-    font-size: 14px;
+	text-align: center;
+	border-color: lightgray;
+	border-width: thin;
+	border-style: solid;
+	padding: 4px 0 4px 0;
+	font-size: 14px;
 }
 
 @media (max-width: 1440px) {
-    .title_div {
+	.title_div {
 		display: none;
 	}
 }
 
 @media (max-width: 1200px) {
-    .left_pane {
+	.left_pane {
 		display: none;
 	}
 

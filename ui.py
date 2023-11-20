@@ -9,63 +9,63 @@ import dash
 
 def get_app_layout():
 	return html.Div([
-	    html.Div(
-	        children = [
-	            html.Img(src = 'assets/logo.png'),
-	            get_side_bar()
-	        ],
-	        className = 'left_pane'
-	    ),
-	    html.Div(
-	        children = [
-	            page_container
-	        ],
-	        className = 'work_pane',
-	        style = {'height': '100%'}
-	    )
+		html.Div(
+			children = [
+				html.Img(src = 'assets/logo.png'),
+				get_side_bar()
+			],
+			className = 'left_pane'
+		),
+		html.Div(
+			children = [
+				page_container
+			],
+			className = 'work_pane',
+			style = {'height': '100%'}
+		)
 	])
 
 def get_page_layout(title, scenario_div, parameter_div, out_tab):
 	return html.Div(
-	    children = [
-	        get_page_title(title),
-	        
-	        html.Div(
-	        	className = 'primary_pane',
-	        	children = [
-			        scenario_div,
-			        parameter_div,
-			        out_tab
-	        	]
-	        ),
-		    dbc.Alert([html.H3("", id = "alert-msg")], id = "alert-dlg", is_open = False, fade = True, duration = 3000)
-	    ],
-	    style = {'height': '100%'}
+		children = [
+			get_page_title(title),
+			
+			html.Div(
+				className = 'primary_pane',
+				children = [
+					scenario_div,
+					parameter_div,
+					out_tab
+				]
+			),
+			dbc.Alert([html.H3("", id = "alert-msg")], id = "alert-dlg", is_open = False, fade = True, duration = 3000)
+		],
+		style = {'height': '100%'}
 	)
 
 def get_side_bar():
 	return dbc.Nav([
-	        dbc.NavLink([
-	                dash.html.Div(page["name"], className = "ms-2"),
-	            ],
-	            href = page["path"],
-	            active = "exact",
-	        )
-	        for page in dash.page_registry.values()
-	    ],
-	    vertical = True,
-	    pills = True,
-	    style = {'width': '240px'}
+			dbc.NavLink([
+					dash.html.Div(page["name"], className = "ms-2"),
+				],
+				href = page["path"],
+				active = "exact",
+			)
+			for page in dash.page_registry.values()
+		],
+		vertical = True,
+		pills = True,
+		style = {'width': '240px'}
 	)
 
 def get_page_title(title_text):
 	return html.Div(
-	    className = 'title_div',
-	    children = [
-	        html.H1(
-	            children = seg
-	        ) for seg in title_text.split('|')
-	    ]
+		className = 'title_div',
+		children = [
+			html.H1(
+				children = seg
+			) for seg in title_text.split('|')
+		]
 	)
 
 def get_scenario_title():
@@ -137,10 +137,10 @@ def get_analyze_button(prefix):
 		className = 'scenario_button',
 		children = [
 			html.Button(
-                'ANALYZE',
-                id = prefix + '-analyze-button',
-                n_clicks = 0
-            ),
+				'ANALYZE',
+				id = prefix + '-analyze-button',
+				n_clicks = 0
+			),
 		]
 	)
 
@@ -149,10 +149,10 @@ def get_backtest_button(prefix):
 		className = 'scenario_button',
 		children = [
 			html.Button(
-                'BACKTEST',
-                id = prefix + '-backtest-button',
-                n_clicks = 0
-            ),
+				'BACKTEST',
+				id = prefix + '-backtest-button',
+				n_clicks = 0
+			),
 		]
 	)
 
@@ -201,45 +201,45 @@ def get_report_div():
 
 def get_pivot_number_input():
 	return html.Div(
-        className = 'scenario_block',
-        children = [
-            dcc.Dropdown(
-            	id = 'pivot-input',
-            	placeholder = 'Number of Pivots',
-            	options = PIVOT_NUMBER_ALL,
-            	style = {'width': '210px'},
-            	value = PIVOT_NUMBER_FOUR
-            )
-    	]
-    )
+		className = 'scenario_block',
+		children = [
+			dcc.Dropdown(
+				id = 'pivot-input',
+				placeholder = 'Number of Pivots',
+				options = PIVOT_NUMBER_ALL,
+				style = {'width': '210px'},
+				value = PIVOT_NUMBER_FOUR
+			)
+		]
+	)
 
 def get_level_number_input():
 	return html.Div(
-        className = 'scenario_block',
-        children = [
-            dcc.Dropdown(
-            	id = 'level-input',
-            	placeholder = 'Levels',
-            	options = [str(2 * i) for i in range(1, 6)],
-            	style = {'width': '210px'}
-            )
-    	]
-    )
+		className = 'scenario_block',
+		children = [
+			dcc.Dropdown(
+				id = 'level-input',
+				placeholder = 'Levels',
+				options = [str(2 * i) for i in range(1, 6)],
+				style = {'width': '210px'}
+			)
+		]
+	)
 
 def get_merge_thres_input():
 	return html.Div(
-        className = 'scenario_block',
-        children = [
-            dcc.Input(
-            	id = 'merge-input',
-            	placeholder = 'Merge By',
-            	type = 'text',
-            	style = {'width': '110px'},
-            	value = str(default_fibo_ext_merge_thres)
-            ),
-            html.Label('%', style = {'fontWeight': 'bolder', 'paddingLeft': '5px'})
-    	]
-    )
+		className = 'scenario_block',
+		children = [
+			dcc.Input(
+				id = 'merge-input',
+				placeholder = 'Merge By',
+				type = 'text',
+				style = {'width': '110px'},
+				value = str(default_fibo_ext_merge_thres)
+			),
+			html.Label('%', style = {'fontWeight': 'bolder', 'paddingLeft': '5px'})
+		]
+	)
 
 def get_report_content(df, path):
 	return html.Div(

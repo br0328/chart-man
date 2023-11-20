@@ -350,7 +350,7 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 			if true_sign == position: match_count += 1
 
 			profit = position * price_offset / df.loc[enter_date]['Close']
-			cum_profit += profit	    	
+			cum_profit += profit			
 
 			record = [
 				trans_count,
@@ -417,28 +417,28 @@ def get_dashboard_info():
 	return res, last_date
 
 def is_pivot(candle, window, df):
-    if candle - window < 0 or candle + window >= len(df): return 0
-    
-    pivot_high = 1
-    pivot_low = 2
-    
-    for i in range(candle - window, candle + window + 1):
-        if df.iloc[candle].Low > df.iloc[i].Low: pivot_low = 0
-        if df.iloc[candle].High < df.iloc[i].High: pivot_high = 0
-    
-    if pivot_high and pivot_low:
-        return 3
-    elif pivot_high:
-        return pivot_high
-    elif pivot_low:
-        return pivot_low
-    else:
-        return 0
+	if candle - window < 0 or candle + window >= len(df): return 0
+	
+	pivot_high = 1
+	pivot_low = 2
+	
+	for i in range(candle - window, candle + window + 1):
+		if df.iloc[candle].Low > df.iloc[i].Low: pivot_low = 0
+		if df.iloc[candle].High < df.iloc[i].High: pivot_high = 0
+	
+	if pivot_high and pivot_low:
+		return 3
+	elif pivot_high:
+		return pivot_high
+	elif pivot_low:
+		return pivot_low
+	else:
+		return 0
 
 def calculate_point_pos(row):
-    if row['isPivot'] == 2:
-        return row['Low'] - 1e-3
-    elif row['isPivot'] == 1:
-        return row['High'] + 1e-3
-    else:
-        return np.nan
+	if row['isPivot'] == 2:
+		return row['Low'] - 1e-3
+	elif row['isPivot'] == 1:
+		return row['High'] + 1e-3
+	else:
+		return np.nan
