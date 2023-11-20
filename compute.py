@@ -689,6 +689,35 @@ def is_breakout(candle, backcandles, window, df, stop_percentage):
 	else:
 		return 0
 
+def getDivergance_LL_HL(r, rS):
+    divs = []
+    
+    for rr in r:
+        for rrs in rS:
+            if getOverlap(rr, rrs):
+                sc = rr.class_
+                dc = rrs.class_
+
+                if sc == -1 or sc == 0:
+                    if dc == 1:
+                        if not rr.start == rr.end and not rrs.start == rrs.end: divs.append(( (rrs.start, rr.start), (rrs.end, rr.end)))
+    return divs
+
+def getDivergance_HH_LH(r, rS):
+    divs = []
+    
+    for rr in r:
+        for rrs in rS:
+            if getOverlap(rr, rrs):
+                sc = rr.class_
+                dc = rrs.class_
+
+                if sc == 1 or sc == 0:
+                    if dc == -1:
+                        if not rr.start == rr.end and not rrs.start == rrs.end: divs.append(( (rrs.start, rr.start), (rrs.end, rr.end)))
+    return divs
+
+
 def calculate_breakpoint_pos(row):
 	if row['isBreakOut'] == 2:
 		return row['Low'] - 3e-3
@@ -947,7 +976,7 @@ def findFirst(a, n, R, markers_on):
 def finMin(i, a, n, R, markers_on):
     iMin = i
     
-    while i < n and a[i]/a[iMin]< R:
+    while i < n and a[i] / a[iMin] < R:
         if a[i] < a[iMin]: iMin = i
         i += 1
         
@@ -959,7 +988,7 @@ def finMin(i, a, n, R, markers_on):
 def finMax(i, a, n, R, markers_on):
     iMax = i
     
-    while i < n and a[iMax]/a[i] < R:
+    while i < n and a[iMax] / a[i] < R:
         if a[i] > a[iMax]: iMax = i
         i += 1
         
