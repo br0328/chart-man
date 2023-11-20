@@ -119,5 +119,5 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
     return alert_success('Analysis Completed') + [
         dcc.Graph(figure = fig1, className = 'inter_diver_graph'),
         dcc.Graph(figure = fig2, className = 'inter_diver_graph'),
-        outputlow + '\n' + outputhigh
+        [html.P(outputlow), html.P(outputhigh)]
     ]
