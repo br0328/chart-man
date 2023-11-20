@@ -11,10 +11,125 @@ from util import *
 import pandas_ta as ta
 import pandas as pd
 import numpy as np
+import math
 
 """
 Core logic modules
 """
+
+# Class to store endpoints of a line and handle required requests
+class Linear:
+    def __init__(self, x1, y1, x2, y2, startIndex = None, endIndex = None):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.startIndex = startIndex
+        self.endIndex = endIndex
+        self.m = (y1 - y2) / (x1 - x2)
+        self.c = y1 - self.m * x1
+
+    def getY(self,x):
+        return self.m * x + self.c
+
+    def isInRange(self,x):
+        return self.x1 <= x and x <= self.x2
+
+    def getAngle(self, inDegrees=True):
+        tanTheta = self.m
+        theta = math.atan(tanTheta)
+
+        if not inDegrees:
+            return theta
+        else:
+            return theta * 180 / math.pi
+
+    def getMangnitude(self):
+        return math.sqrt((self.y2 - self.y1) * (self.y2 - self.y1) + (self.x2 - self.x1) * (self.x2 - self.x1))
+
+class Reigon:
+    def __init__(self, s, e, c):
+        self.start = s
+        self.end = e
+        self.class_ = c
+
+def getReigons(highs, data, stoch = False):
+    reigons = []
+    i = 15 if stoch else 0
+
+    while i + 1 < len(highs):
+        h1 = highs[i]
+        h2 = highs[i+1]
+        p1 = data[h1]
+        p2 = data[h2]
+        
+        if p2 > p1 and (p2-p1)/p2 > 0.025:
+            reigons.append(Reigon(h1, h2, 1))
+        elif p2 < p1 and (p1-p2)/p1 > 0.025:
+            reigons.append(Reigon(h1, h2, -1))
+        else:
+            reigons.append(Reigon(h1, h2, 0))
+            
+        i += 1
+    return reigons
+
+def getFinalReigons(reigons):
+    rr = reigons.copy()
+    i = 0
+    
+    while i + 1 < len(rr):
+        r1 = rr[i]
+        r2 = rr[i+1]
+
+        if not r1.class_ == r2.class_:
+            i += 1
+        else:
+            rr[i].end = r2.end
+            rr.remove(r2)
+            
+    return rr
+
+def getOverlap(r1, r2, percent = 0.3):
+    s1 = r1.start
+    s2 = r2.start
+    e1 = r1.end
+    e2 = r2.end
+
+    if s2 <= s1 and e2 <= s1:
+        return False
+    elif s2 >= e1 and e2 >= e1:
+        return False
+    elif s2 < s1 and e2 > e1:
+        return True
+    elif s2 > s1 and e2 < e1:
+        return True
+    elif s1 < s2 and e2 > s1:
+        p = (e2 - s1) / (e1 - s1)
+        return p > percent
+    elif s2 < e1 and e2 > e1:
+        p = (e1 - s2) / (e1 - s1)
+        return p > percent
+
+def getClosestPrevIndex(start, data, type):
+    min_ = 10000000000
+    selected = None
+    
+    if type == 'start':
+        for d in data:
+            if start - d > 0:
+                if start - d < min_:
+                    min_ = start - d
+                    selected = d
+                    
+        return selected
+    else:
+        for d in data:
+            if start - d < 0:
+                if -start + d < min_:
+                    min_ = -start + d
+                    selected = d
+                    
+        return selected
 
 # Get local peak points using Zig-Zag algorithm
 def get_zigzag(df, final_date):
@@ -682,3 +797,196 @@ def get_inter_divergence_highs(df1, df2):
 		i -= 1
 
 	return starts, ends
+
+def getPointsBest(STOCK, min_ = 0.23, max_ = 0.8, getR = False, startDate = '2000-01-01', endDate = '2121-01-01',
+		increment = 0.005, limit = 100, interval = INTERVAL_DAILY, returnData = 'close'):
+    
+    data = load_yf(STOCK, startDate, endDate, interval)
+    data = data.dropna()
+    data = data.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+    
+    date_format = "%Y-%m-%d"
+    
+    end_ = datetime.strptime(endDate, date_format)
+    today = datetime.today()
+
+    d = today - end_
+    
+    if returnData == 'close':
+        Sdata = getScaledY(data["close"])
+    elif returnData == 'lows':
+        Sdata = getScaledY(data["low"])
+    elif returnData == 'highs':
+        Sdata = getScaledY(data["high"])
+    else:
+        print("Wrong data for argument returnData")
+        return None
+    
+    R = 1.1
+    satisfied = False
+    c = 0
+    
+    while not satisfied and c < limit and R > 1:
+        if returnData == 'close':
+            highs, lows = getPointsforArray(data["close"], R)
+        elif returnData == 'lows':
+            highs, lows = getPointsforArray(data["low"], R)
+        else:
+            highs, lows = getPointsforArray(data["high"], R)
+        
+        if not len(highs) <2 and not len(lows) < 2:
+            linears = getLinears(Sdata, sorted(highs+lows))
+            MSE = getMSE(Sdata, linears)
+            c += 1
+            
+            if min_ < MSE and MSE < max_:
+                satisfied = True
+            elif MSE > min_:
+                R -= increment
+            else:
+                R += increment                
+        else:
+            R -= increment
+    if R > 1:
+        if returnData == 'close':
+            h, l = getPointsforArray(data["close"], R)
+        elif returnData == 'lows':
+            h, l = getPointsforArray(data["low"], R)
+        else:
+            h, l = getPointsforArray(data["close"], R)
+    else:
+        if returnData == 'close':
+            h, l = getPointsforArray(data["close"], 1.001)
+        elif returnData == 'lows':
+            h, l = getPointsforArray(data["low"], 1.001)
+        else:
+            h, l = getPointsforArray(data["close"], 1.001)
+
+    if getR:
+        return data, h, l, R
+    else:
+        return data, h, l
+
+def getScaledY(data):
+    return (np.asarray(data) - min(data)) / (max(data) - min(data))
+
+def getScaledX(x, data):
+    return np.asarray(x) / len(data)
+
+def getUnscaledX(x, data):
+    p =  x * len(data)
+    return int(p)
+
+def getLinears(data, Tps):
+    linears = []
+    i = 0
+    
+    while i + 1 < len(Tps):
+        l = Linear(getScaledX(Tps[i], data), data[Tps[i]], getScaledX(Tps[i + 1], data), data[Tps[i + 1]])
+        linears.append(l)
+        i += 1
+    return linears
+
+def getLinearForX(lins, x):
+    for l in lins:
+        if l.isInRange(x): return l
+
+    return None
+
+def getMSE(data, lins):
+    i = lins[0].x1
+    E = 0
+    
+    while i < lins[-1].x2:
+        l = getLinearForX(lins, i)
+        p = data[getUnscaledX(i, data)]
+        pHat = l.getY(i)
+        E += abs((p - pHat)) * 1 / len(data)
+        i += 1 / len(data)
+
+    return E * 10
+
+def getPointsforArray(series, R=1.1):
+    highs, lows = getTurningPoints(series, R, combined=False)
+    return highs, lows
+
+def getTurningPoints(closeSmall, R, combined = True):    
+    markers_on = []
+    highs = []
+    lows = []
+    
+    i, markers_on = findFirst(closeSmall, len(closeSmall), R, markers_on)
+    
+    if i < len(closeSmall) and closeSmall[i] > closeSmall[0]:
+        i, highs = finMax(i, closeSmall, len(closeSmall)-1, R, highs)
+    while i < len(closeSmall)-1 and not math.isnan(closeSmall[i]):
+        i, lows = finMin(i, closeSmall, len(closeSmall)-1, R, lows)
+        i, highs = finMax(i, closeSmall, len(closeSmall)-1, R, highs)
+    
+    if combined:
+        return highs + lows
+    else:
+        return highs, lows
+
+def findFirst(a, n, R, markers_on):
+    iMin = 1
+    iMax = 1
+    i = 2
+    while i<n and a[i]/a[iMin]< R and a[iMax]/a[i]< R:
+        if a[i] < a[iMin]:
+            iMin = i
+        if a[i] > a[iMax]:
+            iMax = i
+        i += 1
+    if iMin < iMax:
+        markers_on.append(iMin)
+    else:
+        markers_on.append(iMax)
+    return i, markers_on
+
+def finMin(i, a, n, R, markers_on):
+    iMin = i
+    
+    while i < n and a[i]/a[iMin]< R:
+        if a[i] < a[iMin]: iMin = i
+        i += 1
+        
+    if i < n or a[iMin] < a[i]:
+        markers_on.append(iMin)
+        
+    return i, markers_on
+
+def finMax(i, a, n, R, markers_on):
+    iMax = i
+    
+    while i < n and a[iMax]/a[i] < R:
+        if a[i] > a[iMax]: iMax = i
+        i += 1
+        
+    if i < n or a[iMax] > a[i]:
+        markers_on.append(iMax)
+        
+    return i, markers_on
+
+def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', interval = INTERVAL_DAILY, type_ = None):
+    data = load_yf(STOCK, startDate, endDate, interval)
+    data = data.dropna()
+    data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+
+    date_format = "%Y-%m-%d"
+    end_ = datetime.strptime(endDate, date_format)
+    today = datetime.today()
+
+    d = today - end_
+
+    if type_ is None:
+        highs, lows = getPointsforArray(data["close"], R)
+        return data, highs, lows
+    elif type_== 'lows':
+        _, lows = getPointsforArray(data["low"], R)
+        return data, lows
+    elif type_== 'highs':
+        highs, _ = getPointsforArray(data["high"], R)
+        return data, highs
+    else:
+        return None, None
