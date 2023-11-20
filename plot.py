@@ -1,4 +1,5 @@
 
+from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import numpy as np
 
@@ -140,3 +141,16 @@ def get_complete_vline(x, color, dash = 'solid', width = 1):
 		x0 = x, x1 = x,
 		y0 = 0, y1 = 1, yref = 'paper'
 	)
+
+def get_figure_with_candlestick_pair(df1, df2, title1 = '', title2 = ''):
+    fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.01, subplot_titles = (title1, title2))
+    
+    fig.add_trace(go.Candlestick(x = df1.index, open = df1['Open'], high = df1['High'], low = df1['Low'], close = df1['Close']), row = 1, col = 1)
+    fig.add_trace(go.Candlestick(x = df2.index, open = df2['Open'], high = df2['High'], low = df2['Low'], close = df2['Close']), row = 2, col = 1)
+        
+    fig.update_yaxes(type = 'log', row = 1, col = 1)
+    fig.update_layout(xaxis_rangeslider_visible = False, showlegend = False)
+    fig.update_layout(xaxis2_rangeslider_visible = False)
+    fig.update_yaxes(type = 'log', row = 2, col = 1)
+    
+    return fig

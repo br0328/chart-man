@@ -64,10 +64,6 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, level):
 	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
 	if level is None: return alert_error('Invalid level. Please select one and retry.', none_ret)
 
-	# If duration is too short, Trendline analysis is not feasible.
-	if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
-		return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
-
 	level = int(level)
 	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
 	
@@ -125,10 +121,6 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval):
 	if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
 	if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
-	
-	# If duration is too short, Trendline analysis is not feasible.
-	if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
-		return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
 
 	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
 

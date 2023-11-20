@@ -1,219 +1,220 @@
-
 @font-face {
-	font-family: "Chilax-Bold";
-	src: url("Chillax-Bold.ttf") format("truetype");
+    font-family: "Chilax-Bold";
+    src: url("Chillax-Bold.ttf") format("truetype");
 }
 
 .left_pane {
-	display: block;
-	width: 260px;
-	padding-left: 20px;
-	padding-top: 20px;
+    display: block;
+    width: 260px;
+    padding-left: 20px;
+    padding-top: 20px;
 }
 
 .work_pane {
-	position: fixed;
-	left: 260px;
-	right: 0;
-	top: 0;
-	bottom: 0;
-	padding-left: 40px;	
+    position: fixed;
+    left: 260px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    padding-left: 40px;
 }
 
-.work_pane > div {
-	height: 100%;
+.work_pane>div {
+    height: 100%;
 }
 
 #_pages_content {
-	height: 100%;
+    height: 100%;
 }
 
 .nav-link.active {
-	background-color: #004C87!important;
-	color: #FFFFFF!important;
+    background-color: #004C87!important;
+    color: #FFFFFF!important;
 }
 
 .nav-link.hover {
-	background-color: #5FAB5F!important;
+    background-color: #5FAB5F!important;
 }
 
 .title_div {
-	display: block;
-	float: right;
-	width: fit-content;
-	vertical-align: top;
-	padding-top: 20px;
-	padding-right: 40px;
+    display: block;
+    float: right;
+    width: fit-content;
+    vertical-align: top;
+    padding-top: 20px;
+    padding-right: 40px;
 }
 
-.title_div h1 {	
-	font-family: "Chilax-Bold";
-	font-size: 32px;
-	text-align: right;
-	color: #004C87;
-	padding: 0;
-	margin: 0;
+.title_div h1 {
+    font-family: "Chilax-Bold";
+    font-size: 32px;
+    text-align: right;
+    color: #004C87;
+    padding: 0;
+    margin: 0;
 }
 
 .scenario_div {
-	float: left;
-	vertical-align: top;
-	padding-top: 40px;
+    float: left;
+    vertical-align: top;
+    padding-top: 40px;
 }
 
 .parameter_div {
-	clear: both;
-	padding-top: 20px;
+    clear: both;
+    padding-top: 20px;
 }
 
 .primary_pane {
-	position: absolute;
-	left: 40px;
-	right: 40px;
-	display: flex;
-	flex-direction: column;
-	height: 100%;
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .out_tab_parent {
-	flex-grow: 1;
-	overflow-y: scroll;
-	margin-top: 20px;
+    flex-grow: 1;
+    overflow-y: scroll;
+    margin-top: 20px;
 }
 
 .out_tab {
-	height: 35px;	
+    height: 35px;
 }
 
-.out_tab > .tab {
-	padding: 5px!important;
+.out_tab>.tab {
+    padding: 5px!important;
 }
 
 .fib_ext_graph {
-	height: 1200px;
+    height: 1200px;
 }
 
 .trendline_graph {
-	height: 1200px;
+    height: 1200px;
+}
+
+.inter_diver_graph {
+    height: 600px;
 }
 
 .new_high_graph {
-	height: 600px;
+    height: 600px;
 }
 
 #out-report {
-	padding-top: 10px;
+    padding-top: 10px;
 }
 
 #out-report th {
-	text-align: center;
-	background: black;
-	color: white;
+    text-align: center;
+    background: black;
+    color: white;
 }
 
 #dash-info th {
-	text-align: center;
-	background: black;
-	color: white;
+    text-align: center;
+    background: black;
+    color: white;
 }
 
 #dash-info td {
-	text-align: center;
+    text-align: center;
 }
 
 .dash-fixed-content {
-	height: fit-content;
+    height: fit-content;
 }
 
 h2 {
-	font-size: 18px;
-	font-weight: bolder;	
-	color: #004C87;
+    font-size: 18px;
+    font-weight: bolder;
+    color: #004C87;
 }
 
 .scenario_block {
-	display: inline-block;
-	vertical-align: middle;
-	padding-left: 20px;
-	padding-right: 20px;
+    display: inline-block;
+    vertical-align: middle;
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
 .scenario_button {
-	display: inline-block;
-	vertical-align: middle;
-	padding-left: 20px;
-	padding-top: 1px;
+    display: inline-block;
+    vertical-align: middle;
+    padding-left: 20px;
+    padding-top: 1px;
 }
 
 .DateInput_input {
-	padding: 6px 14px 3px!important;
-	font-size: 14px;
+    padding: 6px 14px 3px!important;
+    font-size: 14px;
 }
 
 .Select-control {
-	font-size: 14px;
+    font-size: 14px;
 }
 
-.alert {	
-	position: fixed;
-	right: 40px;
-	top: 120px;
-	padding: 10px 16px 1px 16px;
-	width: fit-content;
-	border: none;
-	border-radius: 0;
+.alert {
+    position: fixed;
+    right: 40px;
+    top: 120px;
+    padding: 10px 16px 1px 16px;
+    width: fit-content;
+    border: none;
+    border-radius: 0;
 }
 
 .alert h3 {
-	font-size: 14px;
+    font-size: 14px;
 }
 
 button {
-	padding: 6px 30px 6px 30px;
-	background-color: #004C87;
-	color: #FFFFFF;
-	border-width: thin;
-	border: linen;
-	border-radius: 10px;
-	font-size: 12px;
+    padding: 6px 30px 6px 30px;
+    background-color: #004C87;
+    color: #FFFFFF;
+    border-width: thin;
+    border: linen;
+    border-radius: 10px;
+    font-size: 12px;
 }
 
 input {
-	text-align: center;
-	border-color: lightgray;
-	border-width: thin;
-	border-style: solid;
-	padding: 4px 0 4px 0;
-	font-size: 14px;
+    text-align: center;
+    border-color: lightgray;
+    border-width: thin;
+    border-style: solid;
+    padding: 4px 0 4px 0;
+    font-size: 14px;
 }
 
 @media (max-width: 1440px) {
-	.title_div {
-		display: none;
-	}
+    .title_div {
+        display: none;
+    }
 }
 
 @media (max-width: 1200px) {
-	.left_pane {
-		display: none;
-	}
-
-	.work_pane {
-		left: 0;
-	}
+    .left_pane {
+        display: none;
+    }
+    .work_pane {
+        left: 0;
+    }
 }
 
 @media (max-width: 960px) {
-	.scenario_block {
-		padding-left: 10px;
-		padding-right: 10px;
-	}
+    .scenario_block {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
 }
 
 @media (max-width: 900px) {
-	.scenario_block {
-		padding-left: 5px;
-		padding-right: 5px;
-	}
+    .scenario_block {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
 }
-

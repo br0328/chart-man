@@ -642,3 +642,43 @@ def calculate_profit_or_stopped(entry_price, exit_price, long_or_short):
         return 1
     else:
         return -1
+
+def get_inter_divergence_lows(df1, df2):
+	last_low_1 = df1.iloc[-1].Low
+	last_low_2 = df2.iloc[-1].Low
+
+	i = len(df1) - 2
+	starts, ends = -1, -1
+    
+	while i >= 0:
+		dir1 = np.sign(last_low_1 - df1.iloc[i].Low)
+		dir2 = np.sign(last_low_2 - df2.iloc[i].Low)
+		
+		if dir1 != dir2:
+			if starts != -1: starts = len(df1) - i - 1
+			ends = len(df1) - i - 1
+
+		if starts != -1: break
+		i -= 1
+
+	return starts, ends
+
+def get_inter_divergence_highs(df1, df2):
+	last_high_1 = df1.iloc[-1].High
+	last_high_2 = df2.iloc[-1].High
+ 
+	i = len(df1) - 2
+	starts, ends = -1, -1
+
+	while i >= 0:
+		dir1 = np.sign(last_high_1 - df1.iloc[i].High)
+		dir2 = np.sign(last_high_2 - df2.iloc[i].High)
+
+		if dir1 != dir2:
+			if starts == -1: starts = i
+			ends = i
+
+		if starts != -1: break
+		i -= 1
+
+	return starts, ends

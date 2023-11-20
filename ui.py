@@ -82,6 +82,15 @@ def get_symbol_input():
 		]
 	)
 
+def get_two_symbol_inputs():
+	return html.Div(
+		className = 'scenario_block',
+		children = [
+			dcc.Dropdown(id = 'symbol1-input', placeholder = 'Select Symbol-1', options = load_stock_symbols(), style = {'width': '210px'}),
+			dcc.Dropdown(id = 'symbol2-input', placeholder = 'Select Symbol-2', options = load_stock_symbols(), style = {'width': '210px', 'marginTop': '10px'})
+		]
+	)
+
 def get_date_range():
 	return html.Div(
 		className = 'scenario_block',
