@@ -11,7 +11,6 @@ from util import *
 from data import *
 from ui import *
 import plotly.graph_objects as go
-import pandas_ta as ta
 import numpy as np
 import dash
 
@@ -65,6 +64,10 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, level):
 	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
 	if level is None: return alert_error('Invalid level. Please select one and retry.', none_ret)
 
+	# If duration is too short, Trendline analysis is not feasible.
+	if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
+		return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
+
 	level = int(level)
 	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
 	
@@ -93,6 +96,57 @@ def on_symbol_changed(symbol, from_date):
 		from_date = ipo_date
 
 	return [from_date]
+
+# Triggered when Backtest button clicked
+@callback(
+	[
+		Output('alert-dlg', 'is_open', allow_duplicate = True),
+		Output('alert-msg', 'children', allow_duplicate = True),
+		Output('alert-dlg', 'style', allow_duplicate = True),
+		Output('out_tab', 'value', allow_duplicate = True),
+		Output('out-report', 'children', allow_duplicate = True)
+	],
+	Input('trendline-backtest-button', 'n_clicks'),
+	[
+		State('symbol-input', 'value'),
+		State('from-date-input', 'date'),
+		State('to-date-input', 'date'),
+		State('interval-input', 'value')
+	],
+	prevent_initial_call = True
+)
+def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval):
+	none_ret = ['Report', None]
+
+	if n_clicks == 0: return alert_hide(none_ret)
+	
+	if symbol is None: return alert_error('Invalid symbol. Please select one and retry.', none_ret)
+	if from_date is None: return alert_error('Invalid starting date. Please select one and retry.', none_ret)
+	if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
+	if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
+	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
+	
+	# If duration is too short, Trendline analysis is not feasible.
+	if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
+		return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
+
+	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
+
+	# Get results of backtest for file output and visualization
+	# records: table-format data
+	# success_rate: accuracy of transaction positions
+	# cum_profit: cumulated profit on percentage basis	
+	records, success_rate, cum_profit = backtest_trendline(df, interval, symbol)
+ 
+	csv_path = 'out/TRENDLINE-BKTEST_{}_{}_{}_{}_sr={}%_cp={}%.csv'.format(
+		symbol, from_date, to_date, interval,
+		'{:.1f}'.format(100 * success_rate),
+		'{:.1f}'.format(100 * cum_profit)
+	)
+	records.to_csv(csv_path, index = False)
+	report = get_report_content(records, csv_path)
+
+	return alert_success('Backtest Complted.') + ['Report', report]
 
 # Major plotting procedure
 def update_plot(df, level):

@@ -11,7 +11,7 @@ import os
 
 def load_yf(symbol, start, end, interval, fit_today = False, for_backup = False):
 	if yf_on:
-		df = yf.download(symbol, start = start, end = end, interval = '1d')
+		df = yf.download(symbol, start = start, end = end, interval = '1d', progress = False)
 		df = df.drop('Adj Close', axis = 1)
 
 		if for_backup:
