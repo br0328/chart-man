@@ -34,3 +34,5 @@ FIB_EXT_MARKERS = {
 PLOT_COLORS_DARK = ['blue', 'brown', 'indigo', 'magenta', 'green', 'red', 'black']
 
 NEW_HIGH_DAY_MARGIN = 60
+
+DIVERGENCE_RECORDS_PATH = 'out/DIVERGENCE_RECORDS.csv'

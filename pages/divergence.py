@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from plotly.subplots import make_subplots
 from collections import defaultdict
 from constant import *
+from tqdm import tqdm
 from compute import *
 from config import *
 from yahoo import *
@@ -91,8 +92,8 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
     csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}.csv'.format(
 		symbol, from_date, to_date
     )
-    records = get_divergence_data(symbol, from_date, to_date, csv_path)        
-    return alert_success('Analysis Completed') + ['Report', get_report_content(records, csv_path)]
+    df1, df2 = get_divergence_data(symbol, from_date, to_date, csv_path)        
+    return alert_success('Analysis Completed') + ['Report', get_multi_report_content([df1, df2], ['Type-I Divergence', 'Type-II Divergence'], csv_path)]
 
 def get_divergence_data(stock_symbol, stdate, endate, filename):
         year, month, day = map(int, stdate.split('-'))
@@ -101,11 +102,12 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
         year1, month1, day1 = map(int, endate.split('-'))
         edate = date(year1, month1, day1 )
     
-        COMMON_START_DATE = '2020-01-01'
+        COMMON_START_DATE = sdate
         STOCK = stock_symbol
         file_name = filename
 
-        days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
+        #days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
+        days = [(edate - timedelta(days = 1)).strftime(YMD_FORMAT)]
         TT1s, TT2s = [], []
 
         for dd in days:
@@ -122,7 +124,7 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 stockValueStart = stockPart['y0']
                 stockValueEnd = stockPart['y1']
 
-                t1s.append( (startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd) )
+                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
             
             t2s = []
             
@@ -136,7 +138,7 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 stockValueStart = stockPart['y0']
                 stockValueEnd = stockPart['y1']
 
-                t2s.append( (startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd) )
+                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
             
             TT1s.append(t1s)
             TT2s.append(t2s)
@@ -152,27 +154,32 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                     if key not in unique_tuples or date_str < unique_tuples[key][-1][-1]:
                         unique_tuples[key] = [(tup, date_str)]
 
-            result = [min(tups, key=lambda x: x[-1]) for tups in unique_tuples.values()]
+            result = [min(tups, key = lambda x: x[-1]) for tups in unique_tuples.values()]
             return result
 
         out1 = find_unique_smallest_date(TT1s)
         out2 = find_unique_smallest_date(TT2s)
-
+        
+        columns = ['StartDate', 'EndDate', '%D_ValStart', '%D_ValEnd', 'Stock_ValStart', 'Stock_ValEnd', 'EndDatePut']
+        rec1, rec2 = [], []
+        
         with open(file_name + '.csv', "w") as csv_file:
             writer = csv.writer(csv_file, delimiter = ',')
             writer.writerow(['TYPE 1 DIVERGANCE'])
-            writer.writerow(['startDate', 'endDate', '%D valueStart', '%D valueEnd', 'stock Value Start', 'stock Value End', 'END DATE PUT'])
+            writer.writerow(columns)
             
             for t in out1:
                 tempr = []
                 
                 for tt in t[0]:
                     tempr.append(tt)
-                    
+                
+                tempr = [tempr[0].strftime(YMD_FORMAT), tempr[1].strftime(YMD_FORMAT), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
                 writer.writerow(tempr)
+                rec1.append(tempr)
                 
             writer.writerow(['TYPE 2 DIVERGANCE'])
-            writer.writerow(['startDate', 'endDate', '%D valueStart', '%D valueEnd', 'stock Value Start', 'stock Value End', 'END DATE PUT'])
+            writer.writerow(columns)
             
             for t in out2:
                 tempr = []
@@ -180,6 +187,11 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 for tt in t[0]:
                     tempr.append(tt)
                     
+                tempr = [tempr[0].strftime(YMD_FORMAT), tempr[1].strftime(YMD_FORMAT), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
                 writer.writerow(tempr)
+                rec2.append(tempr)
+        
+        df1 = pd.DataFrame(rec1, columns = columns)
+        df2 = pd.DataFrame(rec2, columns = columns)
 
-        return pd.DataFrame()
+        return df1, df2

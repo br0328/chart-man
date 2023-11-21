@@ -1,6 +1,6 @@
 
 from plotly.subplots import make_subplots
-from datetime import timedelta
+from datetime import datetime, timedelta
 from collections import deque
 from scipy import stats
 from constant import *
@@ -15,6 +15,7 @@ import pandas_ta as ta
 import pandas as pd
 import numpy as np
 import math
+import os
 
 """
 Core logic modules
@@ -572,7 +573,8 @@ def backtest_trendline(df):
 	atr_multiplier = 2 
 	stop_percentage = atr.iloc[-1] * atr_multiplier / df['Close'].iloc[-1]
         
-	for level in range(2, 11, 2):
+	#for level in range(2, 11, 2):
+	for level in range(4, 5, 2):
 		window = 3 * level
 		backcandles = 10 * window
 		
@@ -1177,3 +1179,12 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
     if return_csv: return typeONEs, typeTWOs
     
     return fig
+
+def append_divergence_record(symbol1, symbol2, sign, start_date, end_date):
+	if not os.path.exists(DIVERGENCE_RECORDS_PATH):
+		with open(DIVERGENCE_RECORDS_PATH, 'w') as fp:
+			fp.write('Symbol1,Symbol2,Type,StartDate,EndDate,RecordDate\n')
+
+	with open(DIVERGENCE_RECORDS_PATH,'a') as fp:
+		typeStr = 'Bullish' if sign > 0 else 'Bearish'
+		fp.write(f'{symbol1},{symbol2},{typeStr},{start_date.strftime(YMD_FORMAT)},{end_date.strftime(YMD_FORMAT)},{datetime.today().strftime(YMD_FORMAT)}\n')

@@ -59,6 +59,9 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
 
     df1 = load_yf(symbol1, from_date, to_date, INTERVAL_WEEKLY)
     df2 = load_yf(symbol2, from_date, to_date, INTERVAL_WEEKLY)
+    
+    start_date = max(df1.iloc[0].name, df2.iloc[0].name)
+    df1, df2 = df1[start_date:], df2[start_date:]
 
     df1_copy, df2_copy = df1.copy(), df2.copy()    
     start1, end1 = get_inter_divergence_lows(df1, df2)
@@ -85,6 +88,7 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
     if found1:
         fig1.update_layout(shapes = shapes)
         outputlow = f"Bullish Divergence Observed between {symbol1} and {symbol2}. Observed on weekly charts from {str(start1).split(' ')[0]} to {str(end1).split(' ')[0]}."
+        append_divergence_record(symbol1, symbol2, 1, start1, end1)
     else:
         outputlow = f'No Bullish divergence found between the provided inputs.'
     
@@ -113,6 +117,7 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
     if found2:
         fig2.update_layout(shapes = shapes)
         outputhigh = f"Bearish Divergence Observed between {symbol1} and {symbol2}. Observed on weekly charts from {str(start2).split(' ')[0]} to {str(end2).split(' ')[0]}."
+        append_divergence_record(symbol1, symbol2, -1, start2, end2)
     else:
         outputhigh = f'No Bearish divergence found between the provided inputs.'
 

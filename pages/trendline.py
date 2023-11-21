@@ -214,7 +214,7 @@ def update_plot(df, cur_date, level):
 	 
 	fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.05, row_heights = [0.8, 0.2])
 
-	for candle in range(backcandles + window, len(df)):
+	for candle in range(backcandles + window, len(df) - 1):
 		if df.iloc[candle].isBreakOut != 0:
 			best_back_l, sl_lows, interc_lows, r_sq_l, best_back_h, sl_highs, interc_highs, r_sq_h = collect_channel(candle, backcandles, window, df)
 			
