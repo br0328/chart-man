@@ -1020,7 +1020,7 @@ def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', 
 	else:
 		return None, None
 
-def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07', return_csv = False):
+def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07', return_csv = False, cur_date = None):
     R = 1.02
     data, _, _ = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date)
     _, lows = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='lows', oldData = data)
@@ -1062,9 +1062,9 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 
     if not return_csv:
         fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.01, subplot_titles = ('Stock prices', 'Stochastic Indicator'), row_width = [0.29,0.7])
-        fig.update_yaxes(type='log', row = 1, col = 1)
+        fig.update_yaxes(type = 'log', row = 1, col = 1)
         fig.add_trace(go.Candlestick(x = df.index, open = df['open'], high = df['high'], low = df['low'], close = df['close']), row = 1, col = 1)
-        fig.update_layout(xaxis_rangeslider_visible = False)
+        fig.update_layout(xaxis_rangeslider_visible = False, yaxis_tickformat = '0')
         
         fig.add_trace(go.Scatter(x = D.index, y = D), row = 2, col = 1)
         fig.add_trace(go.Scatter(x = df.index, y = df['close'].rolling(10).mean(),name = 'ma-10W'))
@@ -1175,10 +1175,12 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
                     lines_to_draw.append(a1)
                     lines_to_draw.append(a2)
 
-    if not return_csv: fig.update_layout(shapes = lines_to_draw, showlegend = False)    
-    if return_csv: return typeONEs, typeTWOs
-    
-    return fig
+    if not return_csv:
+        if cur_date is not None: lines_to_draw = [d for d in lines_to_draw if d['x1'] < cur_date]
+        fig.update_layout(shapes = lines_to_draw, showlegend = False)
+
+    if return_csv: return typeONEs, typeTWOs    
+    return fig, data
 
 def append_divergence_record(symbol1, symbol2, sign, start_date, end_date):
 	if not os.path.exists(DIVERGENCE_RECORDS_PATH):

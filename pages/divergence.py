@@ -22,15 +22,18 @@ dash.register_page(__name__, path = '/divergence', name = 'Stochastic Divergence
 # Page Layout
 scenario_div = get_scenario_div([
 	get_symbol_input(),
-	get_date_range(),
-    get_analyze_button('diver'),
+	get_date_range()
+])
+parameter_div = get_parameter_div([
+	get_cur_date_picker(),
+	get_analyze_button('diver'),
 	get_backtest_button('diver')
 ])
 out_tab = get_out_tab({
 	'Plot': get_plot_div(),
 	'Report': get_report_div()
 })
-layout = get_page_layout('Stochastic|Divergence', scenario_div, None, out_tab)
+layout = get_page_layout('Stochastic|Divergence', scenario_div, parameter_div, out_tab)
 
 # Triggered when Analyze button clicked
 @callback(
@@ -45,11 +48,12 @@ layout = get_page_layout('Stochastic|Divergence', scenario_div, None, out_tab)
 	[
 		State('symbol-input', 'value'),
 		State('from-date-input', 'date'),
-		State('to-date-input', 'date')
+		State('to-date-input', 'date'),
+        State('cur-date-input', 'date')
 	],
 	prevent_initial_call = True
 )
-def on_analyze_clicked(n_clicks, symbol, from_date, to_date):
+def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date):
     none_ret = ['Plot', None] # Padding return values
 
     if n_clicks == 0: return alert_hide(none_ret)
@@ -59,8 +63,51 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
-    fig = runStochDivergance(symbol, from_date, to_date)
+    if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
+    if cur_date < from_date or cur_date > to_date: return alert_error('Invalid current date. Please select one in scenario duration and retry.', none_ret)
+ 
+    cur_date = get_timestamp(cur_date)
+    fig, df = runStochDivergance(symbol, from_date, to_date, cur_date = cur_date)
+    
+    # Pivot date plot
+    draw_vline_shape(fig, cur_date, min(df['low']), max(df['high']), 'darkgreen')
+    draw_annotation(fig, cur_date, np.log10(min(df['low'])), cur_date.strftime(' %d %b %Y') + ' →',
+        xanchor = 'left', yanchor = 'bottom', color = 'darkgreen', size = 14)
+
     return alert_success('Analysis Completed') + ['Plot', dcc.Graph(figure = fig, className = 'diver_graph')]
+
+# Triggered when Symbol combo box changed
+@callback(
+	[
+		Output('from-date-input', 'date', allow_duplicate = True),
+		Output('cur-date-input', 'date', allow_duplicate = True)
+	],
+	Input('symbol-input', 'value'),
+	[
+		State('from-date-input', 'date'), State('cur-date-input', 'date')
+	],
+	prevent_initial_call = True
+)
+def on_symbol_changed(symbol, from_date, cur_date):
+	if symbol is None: return [from_date, cur_date]
+
+	# Adjust start date considering IPO date of the symbol chosen
+	ipo_date = load_stake().loc[symbol]['ipo']
+
+	if from_date is None:
+		from_date = ipo_date
+	elif from_date < ipo_date:
+		from_date = ipo_date
+
+	# If pivot date is not selected yet, automatically sets it as the 2/3 point of [start-date, end-date] range.
+	if cur_date is None:
+		from_date = get_timestamp(from_date)
+		days = (datetime.now() - from_date).days
+
+		cur_date = (from_date + timedelta(days = days * 2 // 3)).strftime(YMD_FORMAT)
+		from_date = from_date.strftime(YMD_FORMAT)
+
+	return [from_date, cur_date]
 
 # Triggered when Backtest button clicked
 @callback(
