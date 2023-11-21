@@ -141,6 +141,17 @@ def get_interval_input():
 		]
 	)
 
+def get_period_input():
+	return html.Div(
+		className = 'scenario_block',
+		children = [
+			html.Label('Period : ', style = {'padding-right': '10px'}),
+			dcc.Input(
+				id = 'period-input', type = 'number', placeholder = 'Period', value = 20, style = {'width': '80px'}
+			)
+		]
+	)
+
 def get_analyze_button(prefix):
 	return html.Div(
 		className = 'scenario_button',

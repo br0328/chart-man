@@ -100,6 +100,10 @@
     height: 500px;
 }
 
+.bollinger_graph {
+    height: 600px
+}
+
 .inter_diver_graph {
     height: 600px;
 }
