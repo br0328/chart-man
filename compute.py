@@ -1,13 +1,16 @@
 
+from plotly.subplots import make_subplots
 from datetime import timedelta
 from collections import deque
 from scipy import stats
 from constant import *
 from tqdm import tqdm
+from finta import TA
 from yahoo import *
 from data import *
 from config import *
 from util import *
+import plotly.graph_objects as go
 import pandas_ta as ta
 import pandas as pd
 import numpy as np
@@ -1019,3 +1022,163 @@ def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', 
         return data, highs
     else:
         return None, None
+
+def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07', return_csv = False):
+    R = 1.02
+    data, _, _ = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date)
+    _, lows = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='lows')
+    _, highs = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='highs')
+
+    lows = np.asarray(lows)
+    lows -= 15
+    lows = lows[lows >= 0]
+    lows = lows.tolist()
+
+    highs = np.asarray(highs)
+    highs -= 15
+    highs = highs[highs >= 0]
+    highs = highs.tolist()
+
+    K = TA.STOCH(data, 14)
+    D = TA.STOCHD(data)
+    
+    data = data[15:]
+    D = D[15:]
+    x = D.to_numpy()
+
+    highsStoch, lowsStoch = getPointsforArray(x, 1.05)
+    highsStoch.append(len(D)-1)
+
+    rr = getReigons(lows, data['low'])
+    fr = getFinalReigons(rr)
+    rr1 = getReigons(highs, data['high'])
+    fr1 = getFinalReigons(rr1)
+    rrS1 = getReigons(highsStoch, D)
+    frS1 = getFinalReigons(rrS1)
+    rrS1 = getReigons(lowsStoch, D)
+    frS2 = getFinalReigons(rrS1)
+
+    type1 = getDivergance_LL_HL(fr, frS2)
+    type2 = getDivergance_HH_LH(fr1, frS1)
+
+    df = data
+
+    if not return_csv:
+        fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.01, subplot_titles = ('Stock prices', 'Stochastic Indicator'), row_width = [0.29,0.7])
+        fig.update_yaxes(type='log', row = 1, col = 1)
+        fig.add_trace(go.Candlestick(x = df.index, open = df['open'], high = df['high'], low = df['low'], close = df['close']), row = 1, col = 1)
+        fig.update_layout(xaxis_rangeslider_visible = False)
+        
+        fig.add_trace(go.Scatter(x = D.index, y = D), row = 2, col = 1)
+        fig.add_trace(go.Scatter(x = df.index, y = df['close'].rolling(10).mean(),name = 'ma-10W'))
+        fig.add_trace(go.Scatter(x = df.index, y = df['close'].rolling(40).mean(),name = 'ma-40W'))
+    
+    lines_to_draw, typeONEs = [], []
+    
+    for t in type1:
+        sS, eS = t[0][0], t[1][0]
+        sD, eD = t[0][1], t[1][1]
+        stockS = data.iloc[t[0][0]].high
+        stockE = data.iloc[t[1][0]].high
+
+        if not eS == sS and not sD == eD:
+            StockM = (stockE - stockS) / (eS - sS)
+            Dm = (eD - sS) / (eD - sD)
+
+            if StockM > 0.2 and Dm > 0.2:
+                pass
+            elif StockM < -0.2 and Dm < -0.2:
+                pass
+            else:
+                start = max(t[0][1], t[0][0])
+                ending = min(t[1])
+                stockStart = start
+                stockEnd = ending
+
+                dStart = start
+                dEnd = ending
+                
+                a1 = dict(
+                    x0 = data.iloc[dStart].name,
+                    y0 = D.iloc[dStart],
+                    x1 = data.iloc[dEnd].name,
+                    y1 = D.iloc[dEnd],
+                    type = 'line',
+                    xref = 'x2',
+                    yref = 'y2',
+                    line_width = 7
+                )
+                b1 = dict(
+                    x0 = data.iloc[stockStart].name,
+                    y0 = data.iloc[stockStart].low,
+                    x1 = data.iloc[stockEnd].name,
+                    y1 = data.iloc[stockEnd].low,
+                    type = 'line',
+                    xref = 'x',
+                    yref = 'y',
+                    line_width = 7
+                )
+                typeONEs.append((a1, b1))
+                
+                if not return_csv:
+                    lines_to_draw.append(a1)
+                    lines_to_draw.append(b1)                
+
+    typeTWOs = []
+    
+    for t in type2:
+        sS, eS = t[0][0], t[1][0]
+        sD, eD = t[0][1], t[1][1]
+        ss = max(sS, sD)
+        ee = min(eS, eD)
+        stockS = data.iloc[ss].high
+        stockE = data.iloc[ee].high
+        dds = D.iloc[ss]
+        dde = D.iloc[ee]
+
+        if not eS == sS and not sD == eD:
+            StockM = (stockE - stockS)/(eS-sS)
+            Dm = (dde - dds)/(eS-sS)
+
+            if StockM > 0.2 and Dm > 0.2:
+                pass
+            elif StockM < -0.2 and Dm < -0.2:
+                pass
+            else:
+                start = max(t[0][1], t[0][0])
+                ending = min(t[1])
+                stockStart = start
+                stockEnd = ending
+
+                dStart = start
+                dEnd = ending
+            
+                a1 = dict(
+                    x0 = data.iloc[dStart].name,
+                    y0 = D.iloc[dStart],
+                    x1 = data.iloc[dEnd].name,
+                    y1 = D.iloc[dEnd],
+                    type = 'line',
+                    xref = 'x2',
+                    yref = 'y2',
+                    line_width = 7
+                )
+                a2 = dict(
+                    x0 = data.iloc[stockStart].name,
+                    y0 = data.iloc[stockStart].high,
+                    x1 = data.iloc[stockEnd].name,
+                    y1 = data.iloc[stockEnd].high,
+                    type = 'line',
+                    xref = 'x',
+                    yref = 'y',
+                    line_width=  7)
+                typeTWOs.append((a1, a2))
+                
+                if not return_csv:
+                    lines_to_draw.append(a1)
+                    lines_to_draw.append(a2)
+
+    if not return_csv: fig.update_layout(shapes = lines_to_draw)    
+    if return_csv: return typeONEs, typeTWOs
+    
+    return fig
