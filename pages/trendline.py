@@ -22,6 +22,7 @@ scenario_div = get_scenario_div([
 	get_interval_input()
 ])
 parameter_div = get_parameter_div([
+    get_cur_date_picker(),
 	get_level_number_input(),
 	get_analyze_button('trendline'),
 	get_backtest_button('trendline')
@@ -47,12 +48,13 @@ layout = get_page_layout('Trendline', scenario_div, parameter_div, out_tab)
 		State('symbol-input', 'value'),
 		State('from-date-input', 'date'),
 		State('to-date-input', 'date'),
+		State('cur-date-input', 'date'),
 		State('interval-input', 'value'),
 		State('level-input', 'value')
 	],
 	prevent_initial_call = True
 )
-def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, level):
+def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date, interval, level):
 	none_ret = ['Plot', None, None] # Padding return values
 
 	if n_clicks == 0: return alert_hide(none_ret)
@@ -63,25 +65,31 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, level):
 	if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
 	if level is None: return alert_error('Invalid level. Please select one and retry.', none_ret)
-
+	if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
+	if cur_date < from_date or cur_date > to_date: return alert_error('Invalid current date. Please select one in scenario duration and retry.', none_ret)
+ 
 	level = int(level)
 	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
-	
-	return alert_success('Analysis Completed') + ['Plot', update_plot(df, level), html.Div()]
+
+	cur_date = get_nearest_backward_date(df, get_timestamp(cur_date)) # Adjust the pivot date to the nearest valid point
+	if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
+ 
+	return alert_success('Analysis Completed') + ['Plot', update_plot(df, cur_date, level), html.Div()]
 
 # Triggered when Symbol combo box changed
 @callback(
 	[
-		Output('from-date-input', 'date', allow_duplicate = True)
+		Output('from-date-input', 'date', allow_duplicate = True),
+		Output('cur-date-input', 'date', allow_duplicate = True)
 	],
 	Input('symbol-input', 'value'),
 	[
-		State('from-date-input', 'date')
+		State('from-date-input', 'date'), State('cur-date-input', 'date')
 	],
 	prevent_initial_call = True
 )
-def on_symbol_changed(symbol, from_date):
-	if symbol is None: return [from_date]
+def on_symbol_changed(symbol, from_date, cur_date):
+	if symbol is None: return [from_date, cur_date]
 
 	# Adjust start date considering IPO date of the symbol chosen
 	ipo_date = load_stake().loc[symbol]['ipo']
@@ -91,7 +99,15 @@ def on_symbol_changed(symbol, from_date):
 	elif from_date < ipo_date:
 		from_date = ipo_date
 
-	return [from_date]
+	# If pivot date is not selected yet, automatically sets it as the 2/3 point of [start-date, end-date] range.
+	if cur_date is None:
+		from_date = get_timestamp(from_date)
+		days = (datetime.now() - from_date).days
+
+		cur_date = (from_date + timedelta(days = days * 2 // 3)).strftime(YMD_FORMAT)
+		from_date = from_date.strftime(YMD_FORMAT)
+
+	return [from_date, cur_date]
 
 # Triggered when Backtest button clicked
 @callback(
@@ -128,7 +144,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval):
 	# records: table-format data
 	# success_rate: accuracy of transaction positions
 	# cum_profit: cumulated profit on percentage basis	
-	records, success_rate, cum_profit = backtest_trendline(df, interval, symbol)
+	records, success_rate, cum_profit = backtest_trendline(df)
  
 	csv_path = 'out/TRENDLINE-BKTEST_{}_{}_{}_{}_sr={}%_cp={}%.csv'.format(
 		symbol, from_date, to_date, interval,
@@ -141,9 +157,12 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval):
 	return alert_success('Backtest Complted.') + ['Report', report]
 
 # Major plotting procedure
-def update_plot(df, level):
+def update_plot(df, cur_date, level):
+	df_copy = df.copy()
+	df = df[:cur_date]
+
 	df['ID'] = range(len(df))
-	df['Date'] = list(df.index)
+	df['Date'] = list(df.index)	
 	df.set_index('ID', inplace = True)
  
 	window = 3 * level	
@@ -281,8 +300,8 @@ def update_plot(df, level):
 		)
 	
 	# Draw candlestick and volume chart
-	fig.add_trace(get_candlestick(df), row = 1, col = 1)
-	fig.add_trace(get_volume_bar(df), row = 2, col = 1)
+	fig.add_trace(get_candlestick(df_copy), row = 1, col = 1)
+	fig.add_trace(get_volume_bar(df_copy), row = 2, col = 1)
 
 	fig.add_trace(
 		go.Scatter(
@@ -293,6 +312,12 @@ def update_plot(df, level):
 		),
 		row = 1, col = 1
 	)
+ 	
+  	# Pivot date plot
+	draw_vline_shape(fig, cur_date, min(df_copy['Low']), max(df_copy['High']), 'darkgreen')
+	draw_annotation(fig, cur_date, min(df_copy['Low']), cur_date.strftime(' %d %b %Y') + ' →',
+		xanchor = 'left', yanchor = 'bottom', color = 'darkgreen', size = 14)
+ 
 	fig.update_traces(
 		name = "Break Below",
 		selector = dict(legendgroup = "black")
@@ -301,7 +326,7 @@ def update_plot(df, level):
 		name = "Break Above",
 		selector = dict(legendgroup = "blue")
 	)
-	update_shared_xaxes(fig, df, 2)
+	update_shared_xaxes(fig, df_copy, 2)
 
 	fig.update_yaxes(title_text = 'Price', row = 1, col = 1)
 	fig.update_yaxes(title_text = 'Volume', row = 2, col = 1)

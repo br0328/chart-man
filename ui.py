@@ -267,7 +267,21 @@ def get_report_content(df, path):
 			html.Div(path, style = {'text-align': 'right', 'margin-top': '10px', 'margin-bottom': '10px', 'padding-right': '20px'}),
 			dash_table.DataTable(
 				df.to_dict('records'), [{"name": i, "id": i} for i in df.columns],
-				fixed_rows = dict(headers = True)
+				fixed_rows = dict(headers = True),
+    			style_data_conditional = [{
+					'if': {'row_index': 'even'},
+					'backgroundColor': 'rgb(250, 250, 250)',
+				}],
+				style_cell_conditional = [
+					{
+						'if': {'column_id': c},
+						'textAlign': 'center'
+					} for c in df.columns if not c.endswith('Price') and not c.endswith('Return')
+				],
+				style_header = {
+					'fontWeight': 'bold',
+					'textAlign': 'center'
+				}
 			)
 		]
 	)

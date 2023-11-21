@@ -58,9 +58,6 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
-    csv_path = 'out/DIVERGENCE-BACKTEST_{}_{}_{}.csv'.format(
-		symbol, from_date, to_date
-    )    
     fig = runStochDivergance(symbol, from_date, to_date)
     return alert_success('Analysis Completed') + ['Plot', dcc.Graph(figure = fig, className = 'diver_graph')]
 
@@ -98,7 +95,6 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
     return alert_success('Analysis Completed') + ['Report', get_report_content(records, csv_path)]
 
 def get_divergence_data(stock_symbol, stdate, endate, filename):
-        ct = datetime.now()
         year, month, day = map(int, stdate.split('-'))
         sdate = date(year, month, day)
         
@@ -163,27 +159,27 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
         out2 = find_unique_smallest_date(TT2s)
 
         with open(file_name + '.csv', "w") as csv_file:
-                writer = csv.writer(csv_file, delimiter = ',')
-                writer.writerow(['TYPE 1 DIVERGANCE'])
-                writer.writerow(['startDate', 'endDate', '%D valueStart', '%D valueEnd', 'stock Value Start', 'stock Value End', 'END DATE PUT'])
+            writer = csv.writer(csv_file, delimiter = ',')
+            writer.writerow(['TYPE 1 DIVERGANCE'])
+            writer.writerow(['startDate', 'endDate', '%D valueStart', '%D valueEnd', 'stock Value Start', 'stock Value End', 'END DATE PUT'])
+            
+            for t in out1:
+                tempr = []
                 
-                for t in out1:
-                    tempr = []
+                for tt in t[0]:
+                    tempr.append(tt)
                     
-                    for tt in t[0]:
-                        tempr.append(tt)
-                        
-                    writer.writerow(tempr)
-                    
-                writer.writerow(['TYPE 2 DIVERGANCE'])
-                writer.writerow(['startDate', 'endDate', '%D valueStart', '%D valueEnd', 'stock Value Start', 'stock Value End', 'END DATE PUT'])
+                writer.writerow(tempr)
                 
-                for t in out2:
-                    tempr = []
+            writer.writerow(['TYPE 2 DIVERGANCE'])
+            writer.writerow(['startDate', 'endDate', '%D valueStart', '%D valueEnd', 'stock Value Start', 'stock Value End', 'END DATE PUT'])
+            
+            for t in out2:
+                tempr = []
+                
+                for tt in t[0]:
+                    tempr.append(tt)
                     
-                    for tt in t[0]:
-                        tempr.append(tt)
-                        
-                    writer.writerow(tempr)
+                writer.writerow(tempr)
 
         return pd.DataFrame()

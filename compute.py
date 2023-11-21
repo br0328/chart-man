@@ -232,12 +232,10 @@ def get_recent_downfalls(zdf, count):
 	for i in range(len(zdf) - 1, 1, -1):
 		row, prev = zdf.iloc[i], zdf.iloc[i - 1]		
 
-		if row['Sign'] > 0: continue
-		
+		if row['Sign'] > 0: continue		
 		hv, zv = prev['Close'], row['Close']
 
 		if (hv - zv) < hv * fibo_pivot_diff_limit: continue
-
 		res.append((prev.name, row.name))
 
 		if len(res) == count: break
@@ -528,8 +526,8 @@ def get_dashboard_info():
 		record = [
 			symbol,
 			'↑ Bullish' if is_bullish else '↓ Bearish',
-			'{:.4f}$'.format(df.loc[last_date]['Close']),
-			'√ {:.4f}'.format(highs[-1]) if is_new_highest else ''
+			'${:.4f}'.format(df.loc[last_date]['Close']),
+			'√ ${:.4f}'.format(highs[-1]) if is_new_highest else ''
 		]
 		res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
 
@@ -563,7 +561,7 @@ def calculate_point_pos(row):
 	else:
 		return np.nan
 
-def backtest_trendline(df, interval, symbol):
+def backtest_trendline(df):
 	combined_trades = pd.DataFrame()
 	
 	df['ID'] = range(len(df))
@@ -592,12 +590,12 @@ def backtest_trendline(df, interval, symbol):
 
 	total_trades = len(combined_trades)
 	profitable_trades = len(combined_trades[combined_trades['Profit/Loss'] > 0])
-	success_rate = (profitable_trades / total_trades) * 100
+	success_rate = profitable_trades / total_trades if total_trades != 0 else 0
 
 	valid_trades = combined_trades.dropna(subset = ['Return']).copy()
 	valid_trades['Cumulative Return'] = (1 + valid_trades['Return'] / 100).cumprod()
 
-	overall_return = (valid_trades['Cumulative Return'].iloc[-1] - 1) * 100
+	overall_return = valid_trades['Cumulative Return'].iloc[-1] - 1
 	
 	combined_trades = combined_trades.drop('Profit/Loss', axis = 1)
 	combined_trades = combined_trades.round(4)
@@ -626,7 +624,7 @@ def collect_channel(candle, backcandles, window, df):
 			slope_low, intercept_low, r_value_l, _, _ = stats.linregress(idx_lows, lows)
 			
 			if (r_value_l ** 2) * len(lows) > best_r_squared_low and (r_value_l ** 2) > 0.85:
-				best_r_squared_low = (r_value_l ** 2)*len(lows)
+				best_r_squared_low = (r_value_l ** 2) * len(lows)
 				best_slope_low = slope_low
 				best_intercept_low = intercept_low
 				best_backcandles_low = i
@@ -634,8 +632,8 @@ def collect_channel(candle, backcandles, window, df):
 		if len(highs) >= 2:
 			slope_high, intercept_high, r_value_h, _, _ = stats.linregress(idx_highs, highs)
 			
-			if (r_value_h ** 2)*len(highs) > best_r_squared_high and (r_value_h ** 2)> 0.85:
-				best_r_squared_high = (r_value_h ** 2)*len(highs)
+			if (r_value_h ** 2) * len(highs) > best_r_squared_high and (r_value_h ** 2)> 0.85:
+				best_r_squared_high = (r_value_h ** 2) * len(highs)
 				best_slope_high = slope_high
 				best_intercept_high = intercept_high
 				best_backcandles_high = i
@@ -657,23 +655,17 @@ def is_breakout(candle, backcandles, window, df, stop_percentage):
 	thirdback_volume = df.iloc[thirdback].Volume
 
 	prev_idx = candle - 1
-	prev_high = df.iloc[prev_idx].High
-	prev_low = df.iloc[prev_idx].Low
 	prev_close = df.iloc[prev_idx].Close
 	prev_open = df.iloc[prev_idx].Open
 	
 	curr_idx = candle
-	curr_high = df.iloc[curr_idx].High
-	curr_low = df.iloc[curr_idx].Low
 	curr_close = df.iloc[curr_idx].Close
 	curr_open = df.iloc[curr_idx].Open
 	curr_volume= max(df.iloc[candle].Volume, df.iloc[candle-1].Volume)
-	breakpclow = (sl_lows * prev_idx + interc_lows  - curr_low) / curr_open
-	breakpchigh = (curr_high - sl_highs * prev_idx - interc_highs) / curr_open
 
 	if ( 
 		thirdback_high > sl_lows * thirdback + interc_lows and
-		curr_volume >thirdback_volume and
+		curr_volume > thirdback_volume and
 		prev_close < prev_open and
 		curr_close < curr_open and
 		sl_lows > 0 and
@@ -938,8 +930,8 @@ def getMSE(data, lins):
 
     return E * 10
 
-def getPointsforArray(series, R=1.1):
-    highs, lows = getTurningPoints(series, R, combined=False)
+def getPointsforArray(series, R = 1.1):
+    highs, lows = getTurningPoints(series, R, combined = False)
     return highs, lows
 
 def getTurningPoints(closeSmall, R, combined = True):    
@@ -950,10 +942,10 @@ def getTurningPoints(closeSmall, R, combined = True):
     i, markers_on = findFirst(closeSmall, len(closeSmall), R, markers_on)
     
     if i < len(closeSmall) and closeSmall[i] > closeSmall[0]:
-        i, highs = finMax(i, closeSmall, len(closeSmall)-1, R, highs)
-    while i < len(closeSmall)-1 and not math.isnan(closeSmall[i]):
-        i, lows = finMin(i, closeSmall, len(closeSmall)-1, R, lows)
-        i, highs = finMax(i, closeSmall, len(closeSmall)-1, R, highs)
+        i, highs = finMax(i, closeSmall, len(closeSmall) - 1, R, highs)
+    while i < len(closeSmall) - 1 and not math.isnan(closeSmall[i]):
+        i, lows = finMin(i, closeSmall, len(closeSmall) - 1, R, lows)
+        i, highs = finMax(i, closeSmall, len(closeSmall) - 1, R, highs)
     
     if combined:
         return highs + lows
@@ -1000,34 +992,37 @@ def finMax(i, a, n, R, markers_on):
         
     return i, markers_on
 
-def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', interval = INTERVAL_DAILY, type_ = None):
-    data = load_yf(STOCK, startDate, endDate, interval)
-    data = data.dropna()
-    data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', interval = INTERVAL_DAILY, type_ = None, oldData = None):
+	if oldData is None:
+		data = load_yf(STOCK, startDate, endDate, interval)
+		data = data.dropna()
+		data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+	else:
+		data = oldData
 
-    date_format = "%Y-%m-%d"
-    end_ = datetime.strptime(endDate, date_format)
-    today = datetime.today()
+	date_format = "%Y-%m-%d"
+	end_ = datetime.strptime(endDate, date_format)
+	today = datetime.today()
 
-    d = today - end_
+	d = today - end_
 
-    if type_ is None:
-        highs, lows = getPointsforArray(data["close"], R)
-        return data, highs, lows
-    elif type_== 'lows':
-        _, lows = getPointsforArray(data["low"], R)
-        return data, lows
-    elif type_== 'highs':
-        highs, _ = getPointsforArray(data["high"], R)
-        return data, highs
-    else:
-        return None, None
+	if type_ is None:
+		highs, lows = getPointsforArray(data["close"], R)
+		return data, highs, lows
+	elif type_== 'lows':
+		_, lows = getPointsforArray(data["low"], R)
+		return data, lows
+	elif type_== 'highs':
+		highs, _ = getPointsforArray(data["high"], R)
+		return data, highs
+	else:
+		return None, None
 
 def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07', return_csv = False):
     R = 1.02
     data, _, _ = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date)
-    _, lows = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='lows')
-    _, highs = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='highs')
+    _, lows = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='lows', oldData = data)
+    _, highs = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='highs', oldData = data)
 
     lows = np.asarray(lows)
     lows -= 15
@@ -1178,7 +1173,7 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
                     lines_to_draw.append(a1)
                     lines_to_draw.append(a2)
 
-    if not return_csv: fig.update_layout(shapes = lines_to_draw)    
+    if not return_csv: fig.update_layout(shapes = lines_to_draw, showlegend = False)    
     if return_csv: return typeONEs, typeTWOs
     
     return fig
