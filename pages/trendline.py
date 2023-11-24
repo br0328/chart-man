@@ -18,12 +18,12 @@ dash.register_page(__name__, path = '/trendline', name = 'Trendline', order = '0
 
 scenario_div = get_scenario_div([
 	get_symbol_input(),
-	get_date_range(),
+	get_date_range(from_date = get_jan_first(get_offset_date_str(get_today_str(), -365))),
 	get_interval_input()
 ])
 parameter_div = get_parameter_div([
     get_cur_date_picker(),
-	get_level_number_input(),
+	get_level_number_input('2'),
 	get_analyze_button('trendline'),
 	get_backtest_button('trendline')
 ])
@@ -74,7 +74,8 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date, interval,
 	cur_date = get_nearest_backward_date(df, get_timestamp(cur_date)) # Adjust the pivot date to the nearest valid point
 	if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
  
-	return alert_success('Analysis Completed') + ['Plot', update_plot(df, cur_date, level), html.Div()]
+	output = alert_trendline(df, symbol, cur_date, interval) 
+	return alert_success('Analysis Completed') + ['Plot', update_plot(df, cur_date, level), html.Div(output)]
 
 # Triggered when Symbol combo box changed
 @callback(
@@ -102,10 +103,12 @@ def on_symbol_changed(symbol, from_date, cur_date):
 	# If pivot date is not selected yet, automatically sets it as the 2/3 point of [start-date, end-date] range.
 	if cur_date is None:
 		from_date = get_timestamp(from_date)
-		days = (datetime.now() - from_date).days
+		cur_date = datetime.now()
+		#days = (datetime.now() - from_date).days
 
-		cur_date = (from_date + timedelta(days = days * 2 // 3)).strftime(YMD_FORMAT)
+		#cur_date = (from_date + timedelta(days = days * 2 // 3)).strftime(YMD_FORMAT)
 		from_date = from_date.strftime(YMD_FORMAT)
+		cur_date = cur_date.strftime(YMD_FORMAT)
 
 	return [from_date, cur_date]
 
@@ -144,7 +147,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval):
 	# records: table-format data
 	# success_rate: accuracy of transaction positions
 	# cum_profit: cumulated profit on percentage basis	
-	records, success_rate, cum_profit = backtest_trendline(df)
+	records, success_rate, cum_profit = backtest_trendline(df, symbol, from_date, to_date, interval)
  
 	csv_path = 'out/TRENDLINE-BKTEST_{}_{}_{}_{}_sr={}%_cp={}%.csv'.format(
 		symbol, from_date, to_date, interval,
@@ -226,9 +229,8 @@ def update_plot(df, cur_date, level):
 			x1 = np.array([x1[0], x1[-1]])
 			x2 = np.array([x2[0], x2[-1]])
 
-			if r_sq_l >= 0.80 and df.iloc[candle].isBreakOut == 1:
+			if r_sq_l >= 0.80 and df.iloc[candle].isBreakOut == 1 and abs(sl_lows) > 0.25 :
 				extended_y_lows = sl_lows * extended_x + interc_lows
-
 				fig.add_trace(
 					go.Scatter(
 						x = df.loc[extended_x, 'Date'],
@@ -252,7 +254,7 @@ def update_plot(df, cur_date, level):
 					row=  1, col = 1
 				)
 
-			if r_sq_h >= 0.80 and df.iloc[candle].isBreakOut == 2:
+			if r_sq_h >= 0.80 and df.iloc[candle].isBreakOut == 2:				
 				extended_y_highs = sl_highs * extended_x + interc_highs
 				fig.add_trace(
 					go.Scatter(
@@ -308,7 +310,8 @@ def update_plot(df, cur_date, level):
 			x = peaks_x,
 			y = peaks_y,
 			mode = 'markers',
-			marker = dict(size = 5, color = 'white', line_color = 'blue', line_width = 1, symbol = 'square')
+			marker = dict(size = 7.5, color = 'MediumPurple'),
+   			name = 'Pivot'
 		),
 		row = 1, col = 1
 	)
@@ -333,8 +336,7 @@ def update_plot(df, cur_date, level):
 
 	fig.update_layout(
 		yaxis_tickformat = '0',
-		height = 1200,
-		margin = dict(t = 40, b = 40, r = 100),
-		showlegend = False
+		height = 900,
+		margin = dict(t = 40, b = 40, r = 100)
 	)
 	return dcc.Graph(figure = fig, className = 'trendline_graph')

@@ -11,14 +11,16 @@ def get_candlestick(df):
 		low = df['Low'],
 		close = df['Close'],
 		increasing_line_color = 'green',
-		decreasing_line_color = 'red'
-		)
+		decreasing_line_color = 'red',
+  		showlegend = False
+	)
 
 def get_volume_bar(df):
 	return go.Bar(
 		x = df.index,
 		y = df['Volume'],
-		marker_color = df['Close'].diff().apply(lambda x: 'green' if x >= 0 else 'red')
+		marker_color = df['Close'].diff().apply(lambda x: 'green' if x >= 0 else 'red'),
+		showlegend = False
 	)
 
 def get_quick_line(df, column, color = 'blue'):

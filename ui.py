@@ -91,7 +91,7 @@ def get_two_symbol_inputs():
 		]
 	)
 
-def get_date_range():
+def get_date_range(from_date = None, to_date = get_today_str()):
 	return html.Div(
 		className = 'scenario_block',
 		children = [
@@ -99,7 +99,8 @@ def get_date_range():
 				id = 'from-date-input',
 				placeholder = 'From',
 				display_format = 'YYYY-M-D',
-				style = {'display': 'inline-block'}
+				style = {'display': 'inline-block'},
+				date = from_date
 				),
 			html.Div(
 				children = [
@@ -113,12 +114,12 @@ def get_date_range():
 				placeholder = 'To',
 				display_format = 'YYYY-M-D',
 				style = {'display': 'inline-block'},
-				date = get_today_str()
+				date = to_date
 				)
 		]
 	)
 
-def get_cur_date_picker():
+def get_cur_date_picker(date = get_today_str()):
 	return html.Div(
 		className = 'scenario_block',
 		children = [
@@ -126,17 +127,18 @@ def get_cur_date_picker():
 				id = 'cur-date-input',
 				placeholder = 'When',
 				display_format = 'YYYY-M-D',
-				style = {'display': 'inline-block'}
+				style = {'display': 'inline-block'},
+				date = date
 				)
 		]
 	)
 
-def get_interval_input():
+def get_interval_input(value = INTERVAL_DAILY):
 	return html.Div(
 		className = 'scenario_block',
 		children = [
 			dcc.Dropdown(
-				id = 'interval-input', placeholder = 'By', options = INTERVAL_ALL, style = {'width': '120px'}
+				id = 'interval-input', placeholder = 'By', options = INTERVAL_ALL, style = {'width': '120px'}, value = value
 			)
 		]
 	)
@@ -233,7 +235,7 @@ def get_pivot_number_input():
 		]
 	)
 
-def get_level_number_input():
+def get_level_number_input(value = None):
 	return html.Div(
 		className = 'scenario_block',
 		children = [
@@ -241,7 +243,8 @@ def get_level_number_input():
 				id = 'level-input',
 				placeholder = 'Levels',
 				options = [str(2 * i) for i in range(1, 6)],
-				style = {'width': '210px'}
+				style = {'width': '210px'},
+				value = value
 			)
 		]
 	)

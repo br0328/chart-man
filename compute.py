@@ -15,6 +15,7 @@ import pandas_ta as ta
 import pandas as pd
 import numpy as np
 import math
+import copy
 import os
 
 """
@@ -373,7 +374,7 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 
 		record = [
 			i,
-			'{:.4f}$'.format(lv),
+			'${:.4f}'.format(lv),
 			'Resistance' if lv >= cur_price else 'Support',
 			'{:.2f}%'.format(100 * (g[-1][-1] - g[0][-1]) / g[0][-1]) if len(g) > 1 else '',
 			FIB_EXT_MARKERS[b][-1] if b is not None else '',
@@ -390,7 +391,7 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 		'Type': 'Current Date:',
 		'Width': cur_date.strftime('%d %b %Y'),
 		'Behavior': 'Current Price:',
-		'Description': '{:.4f}$'.format(cur_price)
+		'Description': '${:.4f}'.format(cur_price)
 	}).to_frame().T], ignore_index = True)
 
 	res = pd.concat([res, pd.Series({
@@ -475,7 +476,7 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 				trans_count,
 				'Long' if position > 0 else 'Short',
 				enter_date.strftime('%d %b %Y'),
-				'{:.4f}$'.format(df.loc[enter_date]['Close']),
+				'${:.4f}'.format(df.loc[enter_date]['Close']),
 				cur_date.strftime('%d %b %Y'),
 				'{:.4f}$'.format(cur_candle['Close']),
 				'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
@@ -562,7 +563,39 @@ def calculate_point_pos(row):
 	else:
 		return np.nan
 
-def backtest_trendline(df):
+def alert_trendline(df, symbol, cur_date, interval):
+	df = copy.deepcopy(df)[:cur_date]
+
+	df['ID'] = range(len(df))
+	df['Date'] = list(df.index)
+	df.set_index('ID', inplace = True)
+
+	atr = ta.atr(high = df['High'], low = df['Low'], close = df['Close'], length = 14)
+	atr_multiplier = 2 
+	stop_percentage = atr.iloc[-1] * atr_multiplier / df['Close'].iloc[-1]
+	profit_percentage = (1 + 3 / 4) * stop_percentage
+	
+	output = 'No signal today for {} on {} interval.'.format(symbol, interval)
+
+	#for level in range(2, 11, 2):
+	for level in range(2, 3, 2):
+		window = 3 * level
+		backcandles = 10 * window
+		
+		df['isPivot'] = df.apply(lambda row: is_pivot(row.name, window, df), axis = 1)
+		signal = is_breakout(len(df) - 1, backcandles, window, df, stop_percentage)
+  
+		if signal == 1:
+			output = 'Short signal for today for {} on {} interval with Take_Profit={:.1f}% and Stop_Loss={:.1f}%.'.format(
+				symbol, interval, profit_percentage, stop_percentage
+			)
+		elif signal == 2:
+			output = 'Short signal for today for {} on {} interval with Take_Profit={:.1f}% and Stop_Loss={:.1f}%.'.format(
+					symbol, interval, profit_percentage, stop_percentage
+				)
+	return output
+
+def backtest_trendline(df, symbol, from_date, to_date, interval):
 	combined_trades = pd.DataFrame()
 	
 	df['ID'] = range(len(df))
@@ -597,10 +630,32 @@ def backtest_trendline(df):
 	valid_trades = combined_trades.dropna(subset = ['Return']).copy()
 	valid_trades['Cumulative Return'] = (1 + valid_trades['Return'] / 100).cumprod()
 
-	overall_return = valid_trades['Cumulative Return'].iloc[-1] - 1
+	if len(valid_trades) > 0:
+		overall_return = valid_trades['Cumulative Return'].iloc[-1] - 1
+	else:
+		overall_return = 0
 	
 	combined_trades = combined_trades.drop('Profit/Loss', axis = 1)
+	combined_trades = combined_trades.drop('Level', axis = 1)
 	combined_trades = combined_trades.round(4)
+
+	last_records = [
+		{},
+		{
+   			'Enter Price': f"Ticker: {symbol}",
+			'Exit Date': f"From: {change_date_format(from_date, YMD_FORMAT, '%Y-%m-%d')}",
+			'Exit Price': f"To: {change_date_format(to_date, YMD_FORMAT, '%Y-%m-%d')}",
+			'Signal': f"By: {interval}"
+		},
+		{
+			'Enter Price': 'Success Rate:',
+			'Exit Date': '{:.1f}%'.format(success_rate * 100),
+			'Exit Price': 'Cumulative Profit:',
+   			'Signal': '{:.1f}%'.format(overall_return * 100)
+		}
+	]
+	for r in last_records:
+		combined_trades = pd.concat([combined_trades, pd.Series(r).to_frame().T], ignore_index = True)
 
 	return combined_trades, success_rate, overall_return
 

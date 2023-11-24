@@ -15,6 +15,12 @@ def get_duration(start_date_str, end_date_str, format_str = YMD_FORMAT):
 
 	return (end_date - start_date).days
 
+def get_jan_first(base_date_str):
+    return datetime.strptime(base_date_str[:4] + '-01-01', YMD_FORMAT).strftime(YMD_FORMAT)
+
+def change_date_format(date_str, old_format, new_format):
+    return datetime.strptime(date_str, old_format).strftime(new_format)
+
 def get_timestamp(date_str, format_str = YMD_FORMAT):
 	return datetime.strptime(date_str, format_str)
 
