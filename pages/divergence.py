@@ -153,12 +153,12 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
         STOCK = stock_symbol
         file_name = filename
 
-        #days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
-        days = [(edate - timedelta(days = 1)).strftime(YMD_FORMAT)]
+        days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
+        #days = [(edate - timedelta(days = 1)).strftime(YMD_FORMAT)]
         TT1s, TT2s = [], []
 
-        for dd in days:
-            type1, type2 = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
+        for dd in tqdm(days):
+            type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
             t1s = []
             
             for t in type1:
@@ -171,7 +171,8 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 stockValueStart = stockPart['y0']
                 stockValueEnd = stockPart['y1']
 
-                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
+                #ped = get_nearest_forward_date(df, endDate)
+                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, '%d %b %Y')))
             
             t2s = []
             
@@ -185,7 +186,8 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 stockValueStart = stockPart['y0']
                 stockValueEnd = stockPart['y1']
 
-                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
+                #ped = get_nearest_forward_date(df, endDate)
+                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, '%d %b %Y')))
             
             TT1s.append(t1s)
             TT2s.append(t2s)
@@ -210,10 +212,9 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
         columns = ['StartDate', 'EndDate', '%D_ValStart', '%D_ValEnd', 'Stock_ValStart', 'Stock_ValEnd', 'EndDatePut']
         rec1, rec2 = [], []
         
-        with open(file_name + '.csv', "w") as csv_file:
-            writer = csv.writer(csv_file, delimiter = ',')
-            writer.writerow(['TYPE 1 DIVERGANCE'])
-            writer.writerow(columns)
+        with open(file_name + '.csv', "w") as fp:
+            write_line(fp, ['TYPE 1 DIVERGANCE'])
+            write_line(fp, columns)
             
             for t in out1:
                 tempr = []
@@ -221,12 +222,12 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 for tt in t[0]:
                     tempr.append(tt)
                 
-                tempr = [tempr[0].strftime(YMD_FORMAT), tempr[1].strftime(YMD_FORMAT), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
-                writer.writerow(tempr)
+                tempr = [tempr[0].strftime('%d %b %Y'), tempr[1].strftime('%d %b %Y'), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
+                write_line(fp, tempr)
                 rec1.append(tempr)
                 
-            writer.writerow(['TYPE 2 DIVERGANCE'])
-            writer.writerow(columns)
+            write_line(fp, ['\nTYPE 2 DIVERGANCE'])
+            write_line(fp, columns)
             
             for t in out2:
                 tempr = []
@@ -234,8 +235,8 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
                 for tt in t[0]:
                     tempr.append(tt)
                     
-                tempr = [tempr[0].strftime(YMD_FORMAT), tempr[1].strftime(YMD_FORMAT), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
-                writer.writerow(tempr)
+                tempr = [tempr[0].strftime('%d %b %Y'), tempr[1].strftime('%d %b %Y'), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
+                write_line(fp, tempr)
                 rec2.append(tempr)
         
         df1 = pd.DataFrame(rec1, columns = columns)

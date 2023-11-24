@@ -66,3 +66,6 @@ def get_nearest_forward_date(df, cur_date):
 		if res > df.index[-1]: return None
 
 	return res
+
+def write_line(fp, li, delimiter = ','):
+	fp.write(delimiter.join([str(x) for x in li]) + '\n')

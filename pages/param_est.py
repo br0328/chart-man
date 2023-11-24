@@ -56,5 +56,5 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
-    fig = runStochDivergance(symbol, from_date, to_date)
+    fig, _ = runStochDivergance(symbol, from_date, to_date)
     return alert_success('Analysis Completed') + [dcc.Graph(figure = fig, className = 'param_est_graph')]
