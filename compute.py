@@ -1,6 +1,8 @@
 
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
+from loess.loess_1d import loess_1d
+import matplotlib.dates as mdates
 from collections import deque
 from scipy import stats
 from constant import *
@@ -89,6 +91,17 @@ class Scaler:
     
     def getUnscaled(self):
         return self.s
+
+    def getScaledArray(self, a):
+        aa = np.asarray(a)
+        return np.subtract(aa,self.min)/(self.max-self.min)
+
+    def getUnscaledValue(self, v):
+        u = v*(self.max-self.min) + self.min
+        return u
+
+    def getScaledvalue(self, v):
+        return (v- self.min)/(self.max-self.min)
 
 # Returns the closest idex in list of turning points for a given index
 def getClosestIndexinStock(Tp,list_):
@@ -692,7 +705,8 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 
 # Get information for dashboard
 def get_dashboard_info():
-	cols = ['Symbol', 'State', 'Current Price', 'New Highest']
+	#cols = ['Symbol', 'State', 'Current Price', 'New Highest']
+	cols = ['Symbol', 'Current Price', 'New Highest']
 	res = pd.DataFrame(columns = cols)
 
 	for symbol in tqdm(load_stock_symbols(), desc = 'loading', colour = 'green'):
@@ -706,7 +720,7 @@ def get_dashboard_info():
 
 		record = [
 			symbol,
-			'↑ Bullish' if is_bullish else '↓ Bearish',
+			#'↑ Bullish' if is_bullish else '↓ Bearish',
 			'${:.4f}'.format(df.loc[last_date]['Close']),
 			'√ ${:.4f}'.format(highs[-1]) if is_new_highest else ''
 		]
@@ -1439,3 +1453,210 @@ def append_divergence_record(symbol1, symbol2, sign, start_date, end_date):
 	with open(DIVERGENCE_RECORDS_PATH,'a') as fp:
 		typeStr = 'Bullish' if sign > 0 else 'Bearish'
 		fp.write(f'{symbol1},{symbol2},{typeStr},{start_date.strftime(YMD_FORMAT)},{end_date.strftime(YMD_FORMAT)},{datetime.today().strftime(YMD_FORMAT)}\n')
+
+def diffrenciate(xout, yout,xx,yy):
+    h = xout[1] - xout[0]
+    yPrime = np.diff(yout)
+    yPrime = yPrime/h
+    xPrime = xx[1:]
+    xPs, yPs,  _ = loess_1d(xPrime, yPrime, xnew=None, degree=1, frac=0.05, npoints=None, rotate=False, sigy=None)
+    return xPs, yPs, xPrime, yPrime
+
+def getInbetween(pair, minIndexes, xx,yy):
+    allIndex = minIndexes
+    if yy[pair[1]] < yy[pair[0]]:
+        min_ = yy[pair[1]]
+        max_ = yy[pair[0]]
+    else:
+        min_ = yy[pair[0]]
+        max_ = yy[pair[1]]
+    c = 0
+    for a in allIndex:
+        if min_ < yy[a] < max_:
+            #print(min_, yy[a], max_)
+            c += 1
+    if c < 1:
+        return False
+    return True
+
+def getPairs(xx, yy, loesFraction, primeLoessFraction=0.05):
+    xout, yout, _ = loess_1d(xx, yy, xnew=None, degree=1, frac=loesFraction, npoints=None, rotate=False, sigy=None)
+
+    xPs, yPs, xPrime, yPrime = diffrenciate(xout, yout,xx,yy)
+    h = xout[1] - xout[0]
+    yPrimePrime = np.diff(yPs)
+    yPrimePrime = yPrimePrime/h
+    xPrimePrime = xx[2:]
+    xPPs, yPPs, _ = loess_1d(xPrimePrime, yPrimePrime, xnew=None, degree=1, frac=primeLoessFraction, npoints=None, rotate=False, sigy=None)
+    minIndexes = []
+    maxIndexes = []
+    i = 1
+    while i < len(yPs):
+        if yPs[i-1] < 0 and yPs[i] > 0:
+            minIndexes.append(i)
+        elif yPs[i-1] > 0 and yPs[i] < 0:
+            maxIndexes.append(i)
+        i += 1
+
+    minIndexesCheck = []
+    maxIndexesCheck = []
+    i = 1
+    while i < len(yPs):
+        if yPs[i-1] < 0 and yPs[i] > 0:
+            minIndexesCheck.append(i)
+        elif yPs[i-1] > 0 and yPs[i] < 0:
+            maxIndexesCheck.append(i)
+        i += 1
+
+    allIndexCheck = sorted(minIndexes+maxIndexes)
+
+    allIndex = sorted(minIndexes+maxIndexes)
+    allDiffs = []
+    i = 0
+    while i+1 < len(allIndex):
+        a = xout[allIndex[i]+1]
+        b = xout[allIndex[i+1]]
+        allDiffs.append( [abs(a-b), (allIndex[i], allIndex[i+1])] )
+        i += 1
+
+    pairsInnit = [(minIndex, maxIndex) for minIndex in minIndexes for maxIndex in maxIndexes]
+
+    pairs = []
+    for diff in allDiffs:
+        if getInbetween(diff[1], allIndexCheck, xx,yy) and abs(diff[1][0] - diff[1][1]) > 1:
+            pairs.append(diff[1])
+
+    #print(len(pairs), len(allDiffs))
+    return pairs
+
+def plotter1(pairs, xx, yy, xScaler, yScaler, intervalSET, data, y):
+    figures=[]
+    cols = ['black', 'blue', 'green', "yellow"]
+    currentPrice = yScaler.getScaledvalue(y[-1])
+    #print(currentPrice)
+    data = data.copy()
+
+    plotted = []
+    data = data.reset_index()
+    data['Date1'] = data['Date'].map(mdates.date2num)
+    
+    #print("date",data)
+    j = 0
+
+    for pp in pairs:
+        #print(pp, "uy4rwegk")
+
+        if yy[pp[0]] < yy[pp[1]]:
+            min_chosen = yy[pp[0]]
+            max_chosen = yy[pp[1]]
+            p = (pp[0], pp[1])
+        else:
+            max_chosen = yy[pp[0]]
+            min_chosen = yy[pp[1]]
+            p = (pp[1], pp[0])
+
+        min_ = min(yy[max(0, p[0] - 7):p[0] + 7])
+        max_ = max(yy[max(0, p[1] - 7):p[1] + 7])
+
+        max_index = np.argmax(np.asarray(yy[max(0, p[0] - 7):p[0] + 7]))
+        min_index = np.argmin(np.asarray(yy[max(0, p[0] - 7):p[0] + 7]))
+
+        actualMinINdex = min_index - 7 + max(0, p[0] - 7)
+        actualMaxINdex = max_index - 7 + max(0, p[1] - 7)
+
+        firstDate = data['Date1'][0]
+        f1=data['Date'][0]
+        l1=data['Date'][len(data)-1]
+        if intervalSET == INTERVAL_WEEKLY:
+            plottedPoint = [
+                (xScaler.getUnscaledValue(min(xx[p[0]], xx[p[0]])) * 7) + firstDate,
+                (xScaler.getUnscaledValue(xx[p[1]]) * 7) + firstDate
+            ], [
+                10 ** yScaler.getUnscaledValue(min_),
+                10 ** yScaler.getUnscaledValue(min_)
+            ]
+        if intervalSET == INTERVAL_MONTHLY:
+            plottedPoint = [
+                (xScaler.getUnscaledValue(min(xx[p[0]], xx[p[0]])) * 30.5) + firstDate,
+                (xScaler.getUnscaledValue(min(xx[p[1]], xx[p[1]])) * 30.5) + firstDate
+            ], [
+                10 ** yScaler.getUnscaledValue(min_),
+                10 ** yScaler.getUnscaledValue(min_)
+            ]
+        
+        #print(min_chosen <= max_chosen, "jhbjhbn")
+
+        if not plottedPoint in plotted:
+            plotted.append(plottedPoint)
+
+            candlestick = go.Candlestick(
+                x=data['Date'],
+                open=data['open'],
+                high=data['high'],
+                low=data['low'],
+                close=data['close'],
+                increasing_line_color='green',
+                decreasing_line_color='red'
+            )
+
+            layout = go.Layout(
+                title='Candlestick Chart',
+                yaxis=dict(type='log', autorange=True),
+                xaxis=dict(
+                    type='date',
+                    tickformat='%Y-%m-%d',  
+                    rangeslider=dict(visible=False)
+                )
+            )
+
+            fig = go.Figure(data=[candlestick], layout=layout)
+
+            fig.update_xaxes(
+                rangeslider=dict(visible=False)
+            )
+            fig.update_layout(
+            autosize=False,
+            width=1200,
+            height=800,)
+
+            fig.add_trace(go.Scatter(
+                x=[f1,
+                l1],
+                y=[10 ** yScaler.getUnscaledValue(min_), 10 ** yScaler.getUnscaledValue(min_)],
+                mode='lines'
+            ))
+
+            fig.add_trace(go.Scatter(
+                     x=[f1,
+                l1],
+                y=[10 ** yScaler.getUnscaledValue(max_), 10 ** yScaler.getUnscaledValue(max_)],
+                mode='lines'
+            ))
+
+            nums = [0.2366, 0.382, 0.5, 0.618, 0.764, 0.786, 0.886]
+            for num in nums:
+                if intervalSET == INTERVAL_WEEKLY:
+                    y = 10 ** yScaler.getUnscaledValue(max_) - (
+                            (10 ** yScaler.getUnscaledValue(max_) - 10 ** yScaler.getUnscaledValue(min_)) * num)
+                    fig.add_trace(go.Scatter(
+                        x=[f1,l1],
+                        y=[y, y],
+                        mode='lines',
+                        name=str(num)
+                    ))
+                elif intervalSET == INTERVAL_MONTHLY:
+                    y = 10 ** yScaler.getUnscaledValue(max_) - (
+                            (10 ** yScaler.getUnscaledValue(max_) - 10 ** yScaler.getUnscaledValue(min_)) * num)
+                    fig.add_trace(go.Scatter(
+                        x=[f1,l1],
+                        y=[y, y],
+                        mode='lines',
+                        name=str(num)
+                    ))
+                
+
+            figures.append(fig)
+
+        j += 1
+
+    return figures
