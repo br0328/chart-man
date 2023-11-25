@@ -136,13 +136,21 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
-    csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}.csv'.format(
-		symbol, from_date, to_date
+    # csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}.csv'.format(
+	# 	symbol, from_date, to_date
+    # )
+    # df1, df2 = get_divergence_data(symbol, from_date, to_date, csv_path)
+    df, sr, cp = get_divergence_data(symbol, from_date, to_date)
+    
+    csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}_sr={:.1f}%_cp={:.1f}%.csv'.format(
+		symbol, from_date, to_date, sr * 100, cp * 100
     )
-    df1, df2 = get_divergence_data(symbol, from_date, to_date, csv_path)        
-    return alert_success('Analysis Completed') + ['Report', get_multi_report_content([df1, df2], ['Type-I Divergence', 'Type-II Divergence'], csv_path)]
+    df.to_csv(csv_path, index = False)
+    
+    #return alert_success('Analysis Completed') + ['Report', get_multi_report_content([df1, df2], ['Type-I Divergence', 'Type-II Divergence'], csv_path)]
+    return alert_success('Analysis Completed') + ['Report', get_report_content(df, csv_path)]
 
-def get_divergence_data(stock_symbol, stdate, endate, filename):
+def get_divergence_data(stock_symbol, stdate, endate, filename = None):
         year, month, day = map(int, stdate.split('-'))
         sdate = date(year, month, day)
         
@@ -151,10 +159,10 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
     
         COMMON_START_DATE = sdate
         STOCK = stock_symbol
-        file_name = filename
+        #file_name = filename
 
-        days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
-        #days = [(edate - timedelta(days = 1)).strftime(YMD_FORMAT)]
+        #days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'w').strftime('%Y-%m-%d').tolist()
+        days = [(edate - timedelta(days = 1)).strftime(YMD_FORMAT)]
         TT1s, TT2s = [], []
 
         for dd in tqdm(days):
@@ -209,37 +217,102 @@ def get_divergence_data(stock_symbol, stdate, endate, filename):
         out1 = find_unique_smallest_date(TT1s)
         out2 = find_unique_smallest_date(TT2s)
         
-        columns = ['StartDate', 'EndDate', '%D_ValStart', '%D_ValEnd', 'Stock_ValStart', 'Stock_ValEnd', 'EndDatePut']
-        rec1, rec2 = [], []
+        columns = ['Position', 'EntryDate', 'ExitDate', '%D_ValStart', '%D_ValEnd', 'EntryPrice', 'ExitPrice', 'Return', 'TempOrder']
+        #rec1, rec2 = [], []
+        records = []
         
-        with open(file_name + '.csv', "w") as fp:
-            write_line(fp, ['TYPE 1 DIVERGANCE'])
-            write_line(fp, columns)
+        #with open(file_name, "w") as fp:
+        if True:
+            #write_line(fp, ['TYPE 1 DIVERGANCE'])
+            #write_line(fp, columns)
+            
+            match_count, overall_return = 0, 0
             
             for t in out1:
-                tempr = []
+                #tempr = []
+                tempr = list(t[0])
                 
-                for tt in t[0]:
-                    tempr.append(tt)
+                # for tt in t[0]:
+                #     tempr.append(tt)
                 
-                tempr = [tempr[0].strftime('%d %b %Y'), tempr[1].strftime('%d %b %Y'), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
-                write_line(fp, tempr)
-                rec1.append(tempr)
+                if tempr[4] > tempr[5]: match_count += 1
                 
-            write_line(fp, ['\nTYPE 2 DIVERGANCE'])
-            write_line(fp, columns)
+                profit = -(tempr[5] - tempr[4]) / tempr[4]
+                #if profit < -0.015: continue
+                
+                overall_return += profit
+                
+                tempr = [
+                    'Long',
+                    tempr[0].strftime('%d %b %Y'),
+                    tempr[1].strftime('%d %b %Y'),
+                    '{:.4f}'.format(tempr[2]),
+                    '{:.4f}'.format(tempr[3]),
+                    tempr[4],
+                    tempr[5],
+                    '{:.4f}%'.format(100 * profit),
+                    tempr[0]
+                ]
+                #write_line(fp, tempr)
+                #rec1.append(tempr)
+                records.append(tempr)
+                
+            #write_line(fp, ['\nTYPE 2 DIVERGANCE'])
+            #write_line(fp, columns)
             
             for t in out2:
-                tempr = []
+                #tempr = []
+                tempr = list(t[0])
                 
-                for tt in t[0]:
-                    tempr.append(tt)
+                # for tt in t[0]:
+                #     tempr.append(tt)
+                
+                if tempr[4] < tempr[5]: match_count += 1
+                
+                profit = -(tempr[4] - tempr[5]) / tempr[4]
+                #if profit < -0.015: continue
+                
+                overall_return += profit
                     
-                tempr = [tempr[0].strftime('%d %b %Y'), tempr[1].strftime('%d %b %Y'), '{:.4f}'.format(tempr[2]), '{:.4f}'.format(tempr[3]), tempr[4], tempr[5], tempr[6]]
-                write_line(fp, tempr)
-                rec2.append(tempr)
+                tempr = [
+                    'Short',
+                    tempr[0].strftime('%d %b %Y'),
+                    tempr[1].strftime('%d %b %Y'),
+                    '{:.4f}'.format(tempr[2]),
+                    '{:.4f}'.format(tempr[3]),
+                    tempr[4],
+                    tempr[5],
+                    '{:.4f}%'.format(100 * profit),
+                    tempr[0]
+                ]
+                #write_line(fp, tempr)
+                #rec2.append(tempr)
+                records.append(tempr)
         
-        df1 = pd.DataFrame(rec1, columns = columns)
-        df2 = pd.DataFrame(rec2, columns = columns)
+        #df1 = pd.DataFrame(rec1, columns = columns)
+        #df2 = pd.DataFrame(rec2, columns = columns)
+        
+        records.sort(key = lambda r: r[-1])
+        df = pd.DataFrame(records, columns = columns)
+        df = df.drop('TempOrder', axis = 1)
+        
+        last_records = [
+            {},
+            {
+                'EntryDate': f"Ticker: {stock_symbol}",
+                'ExitDate': f"From: {sdate.strftime('%d %b %Y')}",
+                '%D_ValStart': f"To: {edate.strftime('%d %b %Y')}"
+            },
+            {
+                'EntryDate': 'Success Rate:',
+                'ExitDate': '{:.1f}%'.format(match_count / len(df) * 100),
+                '%D_ValStart': 'Cumulative Profit:',
+                '%D_ValEnd': '{:.1f}%'.format(overall_return * 100)
+            },
+            {}
+        ]
+        for r in last_records:
+            df = pd.concat([df, pd.Series(r).to_frame().T], ignore_index = True)
 
-        return df1, df2
+        #return df1, df2
+        return df, match_count / len(df), overall_return

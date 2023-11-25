@@ -606,8 +606,8 @@ def backtest_trendline(df, symbol, from_date, to_date, interval):
 	atr_multiplier = 2 
 	stop_percentage = atr.iloc[-1] * atr_multiplier / df['Close'].iloc[-1]
         
-	#for level in range(2, 11, 2):
-	for level in range(4, 5, 2):
+	for level in tqdm(list(range(2, 11, 2))):
+	#for level in range(4, 5, 2):
 		window = 3 * level
 		backcandles = 10 * window
 		
@@ -652,7 +652,8 @@ def backtest_trendline(df, symbol, from_date, to_date, interval):
 			'Exit Date': '{:.1f}%'.format(success_rate * 100),
 			'Exit Price': 'Cumulative Profit:',
    			'Signal': '{:.1f}%'.format(overall_return * 100)
-		}
+		},
+		{}
 	]
 	for r in last_records:
 		combined_trades = pd.concat([combined_trades, pd.Series(r).to_frame().T], ignore_index = True)
@@ -1158,7 +1159,8 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 					type = 'line',
 					xref = 'x2',
 					yref = 'y2',
-					line_width = 7
+					line_width = 4,
+					line_color = 'blue'
 				)
 				b1 = dict(
 					x0 = data.iloc[stockStart].name,
@@ -1168,7 +1170,8 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 					type = 'line',
 					xref = 'x',
 					yref = 'y',
-					line_width = 7
+					line_width = 4,
+					line_color = 'blue'
 				)
 				typeONEs.append((a1, b1))
 				
@@ -1213,7 +1216,7 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 					type = 'line',
 					xref = 'x2',
 					yref = 'y2',
-					line_width = 7
+					line_width = 4
 				)
 				a2 = dict(
 					x0 = data.iloc[stockStart].name,
@@ -1223,7 +1226,8 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 					type = 'line',
 					xref = 'x',
 					yref = 'y',
-					line_width=  7)
+					line_width = 4
+    			)
 				typeTWOs.append((a1, a2))
 				
 				if not return_csv:
