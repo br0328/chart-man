@@ -36,12 +36,15 @@ class Linear:
         self.m = (y1 - y2) / (x1 - x2)
         self.c = y1 - self.m * x1
 
+	# Get Y from X on the line
     def getY(self,x):
         return self.m * x + self.c
 
+	# Check x value if it's in the line segment
     def isInRange(self,x):
         return self.x1 <= x and x <= self.x2
 
+	# Get the tangent of the line
     def getAngle(self, inDegrees = True):
         tanTheta = self.m
         theta = math.atan(tanTheta)
@@ -51,9 +54,11 @@ class Linear:
         else:
             return theta * 180 / math.pi
 
+	# Get the length of the line
     def getMangnitude(self):
         return math.sqrt((self.y2 - self.y1) * (self.y2 - self.y1) + (self.x2 - self.x1) * (self.x2 - self.x1))
 
+# Similar to Linear (Only used for Fib Ext)
 class Linear2:
     def __init__(self, x1, y1, x2, y2, startIndex, endIndex):
         self.x1 = x1
@@ -63,6 +68,7 @@ class Linear2:
         self.startIndex = startIndex
         self.endIndex = endIndex
 
+	# Get the tangent of the line
     def getAngle(self, inDegress=True):
         cosTheta = (self.y2 - self.y1)/(math.sqrt((self.y2 - self.y1)*(self.y2 - self.y1) + (self.x2 - self.x1)*(self.x2 - self.x1)))
         theta = math.acos(cosTheta)
@@ -71,35 +77,43 @@ class Linear2:
         else:
             return theta * 180/math.pi
 
+	# Get the length of the line
     def getMangnitude(self):
         return math.sqrt((self.y2 - self.y1)*(self.y2 - self.y1) + (self.x2 - self.x1)*(self.x2 - self.x1))
-    
+
+# Management class for a time range
 class Reigon:
     def __init__(self, s, e, c):
         self.start = s
         self.end = e
         self.class_ = c
 
+# Linear scaler class
 class Scaler:
     def __init__(self, series):
         self.s = series
         self.max = np.max(series)
         self.min = np.min(series)
 
+	# Get the scaling ratio
     def getScaled(self):
         return np.subtract(self.s, self.min) / (self.max - self.min)
     
+    # Return scalar as is
     def getUnscaled(self):
         return self.s
 
+	# Return scaled array
     def getScaledArray(self, a):
         aa = np.asarray(a)
         return np.subtract(aa,self.min)/(self.max-self.min)
 
+	# Return unscaled scalar
     def getUnscaledValue(self, v):
         u = v*(self.max-self.min) + self.min
         return u
 
+	# Return scaled scalar
     def getScaledvalue(self, v):
         return (v- self.min)/(self.max-self.min)
 
@@ -126,7 +140,8 @@ def getLinearModel(x, data, highs, stockHighs):
 			getClosestIndexinStock(highs[i], stockHighs) , getClosestIndexinStock(highs[i + 1], stockHighs)))
         i += 1
     return linears
-    
+
+# Returns high data range
 def getReigons(highs, data, stoch = False):
     reigons = []
     i = 15 if stoch else 0
@@ -147,6 +162,7 @@ def getReigons(highs, data, stoch = False):
         i += 1
     return reigons
 
+# Calculate merged regions
 def getFinalReigons(reigons):
     rr = reigons.copy()
     i = 0
@@ -163,6 +179,7 @@ def getFinalReigons(reigons):
             
     return rr
 
+# Check the existence of overlaps
 def isThereOverlap(s1, s2, e1, e2):
     if s1 > s2 > e1 and s1 > e2 > e1:  
         return True
@@ -174,7 +191,8 @@ def isThereOverlap(s1, s2, e1, e2):
         return True
     else:
         return False
-    
+
+# Arrange fibonacci pivot HZ pairs
 def removeConflicts(selectedLins1, data):
     selectedLins = []
     
@@ -210,6 +228,7 @@ def removeConflicts(selectedLins1, data):
         
     return selectedLins
 
+# Calculate overlaps of two regions
 def getOverlap(r1, r2, percent = 0.3):
     s1 = r1.start
     s2 = r2.start
@@ -231,6 +250,7 @@ def getOverlap(r1, r2, percent = 0.3):
         p = (e1 - s2) / (e1 - s1)
         return p > percent
 
+# Get the closes date point that is included in data
 def getClosestPrevIndex(start, data, type):
     min_ = 10000000000
     selected = None
@@ -788,6 +808,7 @@ def alert_trendline(df, symbol, cur_date, interval):
 				)
 	return output
 
+# Backtest Trendline Program
 def backtest_trendline(df, symbol, from_date, to_date, interval):
 	combined_trades = pd.DataFrame()
 	
@@ -799,6 +820,9 @@ def backtest_trendline(df, symbol, from_date, to_date, interval):
 	atr_multiplier = 2 
 	stop_percentage = atr.iloc[-1] * atr_multiplier / df['Close'].iloc[-1]
         
+    # For a certain date point, we can only have one decision
+    # So the loop of levels and arrange the results is nonsense
+    # Nikola fixed it so to calculate only once
 	for level in tqdm(list(range(2, 11, 2))):
 	#for level in range(4, 5, 2):
 		window = 3 * level
@@ -813,6 +837,7 @@ def backtest_trendline(df, symbol, from_date, to_date, interval):
 		trades_data = unit_trendline_backtest(df, level)
 		combined_trades = pd.concat([combined_trades, trades_data])
 
+	# Merge the transactions with the same entry dates
 	combined_trades = combined_trades.sort_values(by = 'Enter Date')
 	combined_trades = combined_trades.drop_duplicates(subset = ['Enter Date', 'Exit Date'], keep = 'first')
 
@@ -832,6 +857,7 @@ def backtest_trendline(df, symbol, from_date, to_date, interval):
 	combined_trades = combined_trades.drop('Level', axis = 1)
 	combined_trades = combined_trades.round(4)
 
+	# Records for visualization dataframe
 	last_records = [
 		{},
 		{

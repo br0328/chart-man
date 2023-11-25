@@ -150,6 +150,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
     #return alert_success('Analysis Completed') + ['Report', get_multi_report_content([df1, df2], ['Type-I Divergence', 'Type-II Divergence'], csv_path)]
     return alert_success('Analysis Completed') + ['Report', get_report_content(df, csv_path)]
 
+# Backtest
 def get_divergence_data(stock_symbol, stdate, endate, filename = None):
         year, month, day = map(int, stdate.split('-'))
         sdate = date(year, month, day)
@@ -166,6 +167,7 @@ def get_divergence_data(stock_symbol, stdate, endate, filename = None):
         TT1s, TT2s = [], []
 
         for dd in tqdm(days):
+            # Calculate divergence and get transactions
             type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
             t1s = []
             

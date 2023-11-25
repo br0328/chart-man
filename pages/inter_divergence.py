@@ -57,12 +57,15 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
+    # Load price data for both symbols
     df1 = load_yf(symbol1, from_date, to_date, INTERVAL_WEEKLY, fit_today = True)
     df2 = load_yf(symbol2, from_date, to_date, INTERVAL_WEEKLY, fit_today = True)
     
+    # Set start date as later one (To fit range)
     start_date = max(df1.iloc[0].name, df2.iloc[0].name)
     df1, df2 = df1[start_date:], df2[start_date:]
 
+    # LL-HL Divergence
     df1_copy, df2_copy = df1.copy(), df2.copy()    
     start1, end1 = get_inter_divergence_lows(df1, df2)
     
@@ -83,6 +86,7 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
         start1, end1 = start_date, df1.iloc[-1].name
         found1 = True
 
+    # Two candlesticks
     fig1 = get_figure_with_candlestick_pair(df1, df2, symbol1, symbol2)
 
     if found1:
@@ -92,6 +96,7 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
     else:
         outputlow = f'No Bullish divergence found between the provided inputs.'
     
+    # HH-LH Divergence
     df1, df2 = df1_copy, df2_copy
     start2, end2 = get_inter_divergence_highs(df1, df2)
     
@@ -112,6 +117,7 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
         start2, end2 = start_date, df1.iloc[-1].name
         found2 = True
 
+    # Two candlesticks
     fig2 = get_figure_with_candlestick_pair(df1, df2, symbol1, symbol2)
     
     if found2:
