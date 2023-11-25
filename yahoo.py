@@ -9,7 +9,7 @@ import joblib
 import glob
 import os
 
-def load_yf(symbol, start, end, interval, fit_today = False, for_backup = False):
+def load_yf(symbol, start, end, interval, fit_today = True, for_backup = False):
 	if yf_on:
 		df = yf.download(symbol, start = start, end = get_offset_date_str(end, 1), interval = '1d', progress = False)
 		df = df.drop('Adj Close', axis = 1)

@@ -66,7 +66,9 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date, interval,
 	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
 	if level is None: return alert_error('Invalid level. Please select one and retry.', none_ret)
 	if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
-	if cur_date < from_date or cur_date > to_date: return alert_error('Invalid current date. Please select one in scenario duration and retry.', none_ret)
+ 
+	if cur_date < from_date: cur_date = from_date
+	if cur_date > to_date: cur_date = to_date
  
 	level = int(level)
 	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)

@@ -21,7 +21,7 @@ dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension', ord
 scenario_div = get_scenario_div([
 	get_symbol_input(),
 	get_date_range(),
-	get_interval_input()
+	get_interval_input(value = INTERVAL_MONTHLY)
 ])
 parameter_div = get_parameter_div([
 	#get_cur_date_picker(),
@@ -112,7 +112,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, merge_thr
 	records.to_csv(csv_path, index = False)
 	report = get_report_content(records, csv_path)
 
-	return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date), report]
+	return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date, interval), report]
 
 # Triggered when Symbol combo box changed
 @callback(
@@ -134,11 +134,11 @@ def on_symbol_changed(symbol, from_date):
 
 	# Adjust start date considering IPO date of the symbol chosen
 	ipo_date = load_stake().loc[symbol]['ipo']
-
-	if from_date is None:
-		from_date = ipo_date
-	elif from_date < ipo_date:
-		from_date = ipo_date
+	from_date = ipo_date
+	# if from_date is None:
+	# 	from_date = ipo_date
+	# elif from_date < ipo_date:
+	# 	from_date = ipo_date
 
 	# If pivot date is not selected yet, automatically sets it as the 2/3 point of [start-date, end-date] range.
 	# if cur_date is None:
@@ -218,7 +218,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_th
 	return alert_success('Backtest Complted.') + ['Report', report]
 
 # Major plotting procedure
-def update_plot(df, downfalls, extensions, behaviors, cur_date):
+def update_plot(df, downfalls, extensions, behaviors, cur_date, interval):
 	cur_date = df.index[-1]
 	df = df.rename(columns = {"open": "Open", "high": "High", "low": "Low", "volume": "Volume", "close": "Close"})
     
@@ -247,7 +247,7 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 
 			for i, e in enumerate(g):
 				# Plot colored markers to show which downfalls formed this merged group
-				draw_marker(fig, df.index[int(len(df) * (i + 1) * fold_step)], lv, 'circle', PLOT_COLORS_DARK[e[0]])
+				draw_marker(fig, df.index[int(len(df) * (i + 1) * fold_step)], lv, 'circle', PLOT_COLORS_DARK[e[0] % len(PLOT_COLORS_DARK)])
 
 			# bmark_x, bmark_y: The position of behavior marker
 			bmark_x = df.index[int(len(df) * (len(g) + 2) * fold_step)]
@@ -262,8 +262,8 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 			i, hd, zd, hv, zv, j, lv = g[0]
 			x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) + 0.005))) # Calculate x-indent
 
-			draw_hline_shape(fig, x, df.index[-1], lv, PLOT_COLORS_DARK[i], dash = 'dot') # Draw dot line
-			draw_text(fig, x, lv, '{:.1f}%	 '.format(FIB_EXT_LEVELS[j] * 100), 'middle left', PLOT_COLORS_DARK[i]) # Draw percent level text
+			draw_hline_shape(fig, x, df.index[-1], lv, PLOT_COLORS_DARK[i % len(PLOT_COLORS_DARK)], dash = 'dot') # Draw dot line
+			draw_text(fig, x, lv, '{:.1f}%	 '.format(FIB_EXT_LEVELS[j] * 100), 'middle left', PLOT_COLORS_DARK[i % len(PLOT_COLORS_DARK)]) # Draw percent level text
 
 			# bmark_x, bmark_y: The position of behavior marker
 			bmark_x = df.index[0] + timedelta(days = int(day_span * (dash_indent * (i + 2) - 0.004)))
@@ -284,7 +284,7 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 
 		if is_near: # Only 5 upper levels and 5 lower levels are annotated
 			draw_annotation(fig, 1, np.log10(lv), '- {:.1f}'.format(lv), xref = 'paper', xanchor = 'left',
-				color = 'black' if len(g) > 1 else PLOT_COLORS_DARK[g[0][0]])
+				color = 'black' if len(g) > 1 else PLOT_COLORS_DARK[g[0][0] % len(PLOT_COLORS_DARK)])
 
 		# Plot behavior marks
 		if b is not None:
@@ -296,11 +296,11 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 		hd, zd = f # Hundred date and zero date
 		i = len(downfalls) - 1 - j # Original index
 
-		draw_hline_shape(fig, hd, zd + pivot_wid, df.loc[hd]['Close'], PLOT_COLORS_DARK[i], 1.5) # Hundred line plot
-		draw_hline_shape(fig, zd, zd + pivot_wid, df.loc[zd]['Close'], PLOT_COLORS_DARK[i], 1.5) # Zero line plot
+		draw_hline_shape(fig, hd, zd + pivot_wid, df.loc[hd]['Close'], PLOT_COLORS_DARK[i % len(PLOT_COLORS_DARK)], 1.5) # Hundred line plot
+		draw_hline_shape(fig, zd, zd + pivot_wid, df.loc[zd]['Close'], PLOT_COLORS_DARK[i % len(PLOT_COLORS_DARK)], 1.5) # Zero line plot
 
-		draw_text(fig, hd, df.loc[hd]['Close'], '{:.1f}'.format(df.loc[hd]['Close']), 'top center', PLOT_COLORS_DARK[i]) # Hundred price plot
-		draw_text(fig, zd, df.loc[zd]['Close'], '{:.1f}'.format(df.loc[zd]['Close']), 'bottom center', PLOT_COLORS_DARK[i]) # Zero price plot
+		draw_text(fig, hd, df.loc[hd]['Close'], '{:.1f}'.format(df.loc[hd]['Close']), 'top center', PLOT_COLORS_DARK[i % len(PLOT_COLORS_DARK)]) # Hundred price plot
+		draw_text(fig, zd, df.loc[zd]['Close'], '{:.1f}'.format(df.loc[zd]['Close']), 'bottom center', PLOT_COLORS_DARK[i % len(PLOT_COLORS_DARK)]) # Zero price plot
 
 	# Pivot price plot
 	draw_hline_shape(fig, cur_date, df.index[-1], cur_price, 'red', 2, 'dash')
@@ -318,24 +318,26 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 	ma_50d = df['Close'].rolling(50).mean().round(4)
 	ma_200d = df['Close'].rolling(200).mean().round(4)
     
-	fig.add_trace(
-		go.Scatter(
-			x = df.index,
-			y = ma_50d,
-			name = 'MA-50D (Current: ${:.4f})'.format(ma_50d[-1]),
-			line = dict(color = 'blue')
-		),
-		row = 1, col = 1
-	)
-	fig.add_trace(
-		go.Scatter(
-			x = df.index,
-			y = ma_200d,
-			name = 'MA-200D (Current: ${:.4f})'.format(ma_200d[-1]),
-			line = dict(color = 'orange')
-		),
-		row = 1, col = 1
-	)    
+	if ma_50d is not None:
+		fig.add_trace(
+			go.Scatter(
+				x = df.index,
+				y = ma_50d,
+				name = 'MA-50 (Current: ${:.4f})'.format(ma_50d[-1]),
+				line = dict(color = 'blue')
+			),
+			row = 1, col = 1
+		)
+		fig.add_trace(
+			go.Scatter(
+				x = df.index,
+				y = ma_200d,
+				name = 'MA-200 (Current: ${:.4f})'.format(ma_200d[-1]),
+				line = dict(color = 'orange')
+			),
+			row = 1, col = 1
+		)
+  
 	update_shared_xaxes(fig, df, 2)
 
 	# Apply logarithm to candlestick y axis

@@ -64,8 +64,10 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date):
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
     if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
-    if cur_date < from_date or cur_date > to_date: return alert_error('Invalid current date. Please select one in scenario duration and retry.', none_ret)
- 
+    
+    if cur_date < from_date: cur_date = from_date
+    if cur_date > to_date: cur_date = to_date
+    
     cur_date = get_timestamp(cur_date)
     fig, df = runStochDivergance(symbol, from_date, to_date, cur_date = cur_date)
     

@@ -742,7 +742,7 @@ def get_dashboard_info():
 			symbol,
 			#'↑ Bullish' if is_bullish else '↓ Bearish',
 			'${:.4f}'.format(df.loc[last_date]['Close']),
-			'√ ${:.4f}'.format(highs[-1]) if is_new_highest else ''
+			'√ ${:.4f}'.format(highs[-1]) if is_new_highest else '--------'
 		]
 		res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
 
