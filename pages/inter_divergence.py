@@ -57,8 +57,8 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
-    df1 = load_yf(symbol1, from_date, to_date, INTERVAL_WEEKLY)
-    df2 = load_yf(symbol2, from_date, to_date, INTERVAL_WEEKLY)
+    df1 = load_yf(symbol1, from_date, to_date, INTERVAL_WEEKLY, fit_today = True)
+    df2 = load_yf(symbol2, from_date, to_date, INTERVAL_WEEKLY, fit_today = True)
     
     start_date = max(df1.iloc[0].name, df2.iloc[0].name)
     df1, df2 = df1[start_date:], df2[start_date:]

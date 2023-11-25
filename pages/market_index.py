@@ -61,8 +61,8 @@ def on_analyze_clicked(n_clicks, from_date, to_date):
     yf_dict, figs, report = {}, [], []
 
     for symbol1, symbol2 in pairs:    
-        df1 = yf_dict[symbol1] if symbol1 in yf_dict.keys() else load_yf(symbol1, from_date, to_date, INTERVAL_WEEKLY)
-        df2 = yf_dict[symbol2] if symbol2 in yf_dict.keys() else load_yf(symbol2, from_date, to_date, INTERVAL_WEEKLY)
+        df1 = yf_dict[symbol1] if symbol1 in yf_dict.keys() else load_yf(symbol1, from_date, to_date, INTERVAL_WEEKLY, fit_today = True)
+        df2 = yf_dict[symbol2] if symbol2 in yf_dict.keys() else load_yf(symbol2, from_date, to_date, INTERVAL_WEEKLY, fit_today = True)
         
         yf_dict[symbol1], yf_dict[symbol2] = df1, df2
 
