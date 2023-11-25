@@ -24,8 +24,8 @@ scenario_div = get_scenario_div([
 	get_interval_input()
 ])
 parameter_div = get_parameter_div([
-	get_cur_date_picker(),
-	get_pivot_number_input(),
+	#get_cur_date_picker(),
+	#get_pivot_number_input(),
 	get_merge_thres_input(),
 	get_analyze_button('fib-ext'),
 	get_backtest_button('fib-ext')
@@ -52,13 +52,14 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out
 		State('from-date-input', 'date'),
 		State('to-date-input', 'date'),
 		State('interval-input', 'value'),
-		State('cur-date-input', 'date'),
-		State('pivot-input', 'value'),
+		#State('cur-date-input', 'date'),
+		#State('pivot-input', 'value'),
 		State('merge-input', 'value')
 	],
 	prevent_initial_call = True
 )
-def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date, pivot_number, merge_thres):
+#def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date, pivot_number, merge_thres):
+def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, merge_thres):
 	none_ret = ['Plot', None, None] # Padding return values
 
 	if n_clicks == 0: return alert_hide(none_ret)
@@ -73,33 +74,40 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
 	if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
 		return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
 
-	if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
-	if cur_date < from_date or cur_date > to_date: return alert_error('Invalid current date. Please select one in scenario duration and retry.', none_ret)
-	if pivot_number is None: return alert_error('Invalid pivot number. Please select one and retry.', none_ret)
+	# if cur_date is None: return alert_error('Invalid current date. Please select one and retry.', none_ret)
+	# if cur_date < from_date or cur_date > to_date: return alert_error('Invalid current date. Please select one in scenario duration and retry.', none_ret)
+	# if pivot_number is None: return alert_error('Invalid pivot number. Please select one and retry.', none_ret)
+	cur_date = get_today_str()
+	pivot_number = PIVOT_NUMBER_FOUR
 
 	try:
-		merge_thres = float(merge_thres) / 100
+		merge_thres = float(merge_thres) / 2 / 100
 	except Exception:
 		return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
 	
-	df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
-	cur_date = get_nearest_backward_date(df, get_timestamp(cur_date)) # Adjust the pivot date to the nearest valid point
+	#df = load_yf(symbol, from_date, to_date, interval, fit_today = True)
+	#cur_date = get_nearest_backward_date(df, get_timestamp(cur_date)) # Adjust the pivot date to the nearest valid point
 
-	if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
+	#if cur_date is None: return alert_warning('Nearest valid date not found. Please reselect current date.', none_ret)
 	
-	zdf = get_zigzag(df, cur_date) # Find all possible Fibonacci pivot pairs
+	#zdf = get_zigzag(df, cur_date) # Find all possible Fibonacci pivot pairs
 	pivot_number = PIVOT_NUMBER_ALL.index(pivot_number) + 1
 
-	downfalls = get_recent_downfalls(zdf, pivot_number) # Reduce Fibonacci pivot pairs into only recent ones
-	extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2) # Merge and sort Fibonacci extension levels
+	df, downfalls = get_recent_downfalls_old(symbol, from_date, to_date, pivot_number) # Reduce Fibonacci pivot pairs into only recent ones
+	#extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), df.iloc[-1]['Close'] * 2) # Merge and sort Fibonacci extension levels
+	
+	extensions = get_fib_extensions(df, downfalls, get_safe_num(merge_thres), df.iloc[-1]['close'] * 0.05, df.iloc[-1]['close'] * 5) # Merge and sort Fibonacci extension levels
 	behaviors = get_fib_ext_behaviors(df, extensions, cur_date, get_safe_num(merge_thres)) # Compute behaviors of each extension level
 
 	# Generate table report
 	records = analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, merge_thres, interval, symbol)
 
+	ddf = load_yf(symbol, from_date, to_date, interval, fit_today = True)
+	cur_date = get_nearest_backward_date(ddf, get_timestamp(cur_date)) # Adjust the pivot date to the nearest valid point
+ 
 	# CSV output and visualization
 	csv_path = 'out/FIB-EXT-ANALYZE_{}_{}_{}_{}_{}_p{}_m{}%.csv'.format(
-		symbol, from_date, cur_date.strftime(YMD_FORMAT), to_date, interval, pivot_number, '{:.1f}'.format(100 * merge_thres)
+		symbol, from_date, cur_date.strftime(YMD_FORMAT), to_date, interval, pivot_number, '{:.1f}'.format(2 * 100 * merge_thres)
 	)
 	records.to_csv(csv_path, index = False)
 	report = get_report_content(records, csv_path)
@@ -110,16 +118,19 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date,
 @callback(
 	[
 		Output('from-date-input', 'date', allow_duplicate = True),
-		Output('cur-date-input', 'date', allow_duplicate = True)
+		#Output('cur-date-input', 'date', allow_duplicate = True)
 	],
 	Input('symbol-input', 'value'),
 	[
-		State('from-date-input', 'date'), State('cur-date-input', 'date')
+		State('from-date-input', 'date'),
+		#State('cur-date-input', 'date')
 	],
 	prevent_initial_call = True
 )
-def on_symbol_changed(symbol, from_date, cur_date):
-	if symbol is None: return [from_date, cur_date]
+#def on_symbol_changed(symbol, from_date, cur_date):
+def on_symbol_changed(symbol, from_date):
+	#if symbol is None: return [from_date, cur_date]
+	if symbol is None: return [from_date]
 
 	# Adjust start date considering IPO date of the symbol chosen
 	ipo_date = load_stake().loc[symbol]['ipo']
@@ -130,14 +141,15 @@ def on_symbol_changed(symbol, from_date, cur_date):
 		from_date = ipo_date
 
 	# If pivot date is not selected yet, automatically sets it as the 2/3 point of [start-date, end-date] range.
-	if cur_date is None:
-		from_date = get_timestamp(from_date)
-		days = (datetime.now() - from_date).days
+	# if cur_date is None:
+	# 	from_date = get_timestamp(from_date)
+	# 	days = (datetime.now() - from_date).days
 
-		cur_date = (from_date + timedelta(days = days * 2 // 3)).strftime(YMD_FORMAT)
-		from_date = from_date.strftime(YMD_FORMAT)
+	# 	cur_date = (from_date + timedelta(days = days * 2 // 3)).strftime(YMD_FORMAT)
+	# 	from_date = from_date.strftime(YMD_FORMAT)
 
-	return [from_date, cur_date]
+	#return [from_date, cur_date]
+	return [from_date]
 
 # Triggered when Backtest button clicked
 @callback(
@@ -154,12 +166,13 @@ def on_symbol_changed(symbol, from_date, cur_date):
 		State('from-date-input', 'date'),
 		State('to-date-input', 'date'),
 		State('interval-input', 'value'),
-		State('pivot-input', 'value'),
+		#State('pivot-input', 'value'),
 		State('merge-input', 'value')
 	],
 	prevent_initial_call = True
 )
-def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_number, merge_thres):
+#def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_number, merge_thres):
+def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_thres):
 	none_ret = ['Report', None]
 
 	if n_clicks == 0: return alert_hide(none_ret)
@@ -170,14 +183,16 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
 	if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 	if interval is None: return alert_error('Invalid interval. Please select one and retry.', none_ret)
 	if interval == INTERVAL_QUARTERLY or interval == INTERVAL_YEARLY: return alert_error('Cannot support quarterly or monthly backtest.', none_ret)
-	if pivot_number is None: return alert_error('Invalid pivot number. Please select one and retry.', none_ret)
+	#if pivot_number is None: return alert_error('Invalid pivot number. Please select one and retry.', none_ret)
 	
+	pivot_number = PIVOT_NUMBER_FOUR
+ 
 	# If duration is too short, Fibonacci backtest is not feasible.
 	if get_duration(from_date, to_date) < zigzag_window + zigzag_padding:
 		return alert_error('Duration must be at least {} days for Fibonacci analysis.'.format(zigzag_window + zigzag_padding), none_ret)
 
 	try:
-		merge_thres = float(merge_thres) / 100
+		merge_thres = float(merge_thres) / 2 / 100
 	except Exception:
 		return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
 	
@@ -193,7 +208,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
 	)
 	csv_path = 'out/FIB-EXT-BKTEST_{}_{}_{}_{}_p{}_m{}%_sr={}%_cp={}%.csv'.format(
 		symbol, from_date, to_date, interval, pivot_number,
-		'{:.1f}'.format(100 * merge_thres),
+		'{:.1f}'.format(2 * 100 * merge_thres),
 		'{:.1f}'.format(100 * success_rate),
 		'{:.1f}'.format(100 * cum_profit)
 	)
@@ -204,6 +219,9 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_nu
 
 # Major plotting procedure
 def update_plot(df, downfalls, extensions, behaviors, cur_date):
+	cur_date = df.index[-1]
+	df = df.rename(columns = {"open": "Open", "high": "High", "low": "Low", "volume": "Volume", "close": "Close"})
+    
 	# Set two subplots: primary chart and volume chart
 	fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.05, row_heights = [0.8, 0.2])
 	day_span = (df.index[-1] - df.index[0]).days # Total span of duration
@@ -211,7 +229,7 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 	pivot_wid = timedelta(days = int(day_span * 0.025)) # Length of line starting from a downfall pivot point
 	fold_step, dash_indent = 0.01, 0.07 # Indents and steps for clear visualization of extension level values
 
-	cur_price = df.loc[cur_date]['Close'] # The price of the pivot date
+	cur_price = df.iloc[-1]['Close'] # The price of the pivot date
 	extensions.sort(key = lambda g: abs(cur_price - (g[0][-1] + g[-1][-1]) / 2)) # Sort extension levels by cloeness to the pivot price
 
 	upper_count, lower_count = 0, 0 # Numbers of upper and lower levels compared to the pivot price (Only 5 level pricess are annotated)
@@ -289,14 +307,35 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 	draw_annotation(fig, 1, np.log10(cur_price), '------- {:.1f}'.format(cur_price), 'paper', xanchor = 'left', color = 'red', size = 14)
 
 	# Pivot date plot
-	draw_vline_shape(fig, cur_date, min(df['Low']), max(df['High']) if len(extensions) == 0 else extensions[-1][-1][-1], 'darkgreen')
-	draw_annotation(fig, cur_date, np.log10(min(df['Low'])), cur_date.strftime(' %d %b %Y') + ' →',
-		xanchor = 'left', yanchor = 'bottom', color = 'darkgreen', size = 14)
+	# draw_vline_shape(fig, cur_date, min(df['Low']), max(df['High']) if len(extensions) == 0 else extensions[-1][-1][-1], 'darkgreen')
+	# draw_annotation(fig, cur_date, np.log10(min(df['Low'])), cur_date.strftime(' %d %b %Y') + ' →',
+	# 	xanchor = 'left', yanchor = 'bottom', color = 'darkgreen', size = 14)
 
 	# Draw candlestick and volume chart
 	fig.add_trace(get_candlestick(df), row = 1, col = 1)
 	fig.add_trace(get_volume_bar(df), row = 2, col = 1)
 
+	ma_50d = df['Close'].rolling(50).mean().round(4)
+	ma_200d = df['Close'].rolling(200).mean().round(4)
+    
+	fig.add_trace(
+		go.Scatter(
+			x = df.index,
+			y = ma_50d,
+			name = 'MA-50D (Current: ${:.4f})'.format(ma_50d[-1]),
+			line = dict(color = 'blue')
+		),
+		row = 1, col = 1
+	)
+	fig.add_trace(
+		go.Scatter(
+			x = df.index,
+			y = ma_200d,
+			name = 'MA-200D (Current: ${:.4f})'.format(ma_200d[-1]),
+			line = dict(color = 'orange')
+		),
+		row = 1, col = 1
+	)    
 	update_shared_xaxes(fig, df, 2)
 
 	# Apply logarithm to candlestick y axis
@@ -307,6 +346,11 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date):
 		yaxis_tickformat = '0',
 		height = 1200,
 		margin = dict(t = 40, b = 40, r = 100),
-		showlegend = False
+		legend = dict(
+			yanchor = "top",
+			y = 0.99,
+			xanchor = "left",
+			x = 0.01
+		)
 	)
 	return dcc.Graph(figure = fig, className = 'fib_ext_graph')

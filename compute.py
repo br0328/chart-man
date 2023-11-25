@@ -40,7 +40,7 @@ class Linear:
     def isInRange(self,x):
         return self.x1 <= x and x <= self.x2
 
-    def getAngle(self, inDegrees=True):
+    def getAngle(self, inDegrees = True):
         tanTheta = self.m
         theta = math.atan(tanTheta)
 
@@ -52,12 +52,68 @@ class Linear:
     def getMangnitude(self):
         return math.sqrt((self.y2 - self.y1) * (self.y2 - self.y1) + (self.x2 - self.x1) * (self.x2 - self.x1))
 
+class Linear2:
+    def __init__(self, x1, y1, x2, y2, startIndex, endIndex):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.startIndex = startIndex
+        self.endIndex = endIndex
+
+    def getAngle(self, inDegress=True):
+        cosTheta = (self.y2 - self.y1)/(math.sqrt((self.y2 - self.y1)*(self.y2 - self.y1) + (self.x2 - self.x1)*(self.x2 - self.x1)))
+        theta = math.acos(cosTheta)
+        if not inDegress:
+            return theta
+        else:
+            return theta * 180/math.pi
+
+    def getMangnitude(self):
+        return math.sqrt((self.y2 - self.y1)*(self.y2 - self.y1) + (self.x2 - self.x1)*(self.x2 - self.x1))
+    
 class Reigon:
     def __init__(self, s, e, c):
         self.start = s
         self.end = e
         self.class_ = c
 
+class Scaler:
+    def __init__(self, series):
+        self.s = series
+        self.max = np.max(series)
+        self.min = np.min(series)
+
+    def getScaled(self):
+        return np.subtract(self.s, self.min) / (self.max - self.min)
+    
+    def getUnscaled(self):
+        return self.s
+
+# Returns the closest idex in list of turning points for a given index
+def getClosestIndexinStock(Tp,list_):
+    dist = 1e10
+    point = None
+    
+    for t in list_:
+        d = abs(t - Tp)
+        if d <= dist:
+            dist = d
+            point = t
+            
+    return point
+
+# Returns a list of linear lines that approximate the stock, which can then be
+# used to judge for a rise or a fall
+def getLinearModel(x, data, highs, stockHighs):
+    linears = []
+    i = 0
+    while i + 1 < len(highs):
+        linears.append(Linear2(x[highs[i]], data[highs[i]], x[highs[i + 1]], data[highs[i + 1]],
+			getClosestIndexinStock(highs[i], stockHighs) , getClosestIndexinStock(highs[i + 1], stockHighs)))
+        i += 1
+    return linears
+    
 def getReigons(highs, data, stoch = False):
     reigons = []
     i = 15 if stoch else 0
@@ -93,6 +149,53 @@ def getFinalReigons(reigons):
             rr.remove(r2)
             
     return rr
+
+def isThereOverlap(s1, s2, e1, e2):
+    if s1 > s2 > e1 and s1 > e2 > e1:  
+        return True
+    if s2 > s1 > e2 and s2 > e1 > e2:  
+        return True
+    if e1 > s2 > s1 and e1 > e2 > s1:  
+        return True
+    if e2 > s1 > s2 and e2 > e1 > s2:  
+        return True
+    else:
+        return False
+    
+def removeConflicts(selectedLins1, data):
+    selectedLins = []
+    
+    for s in selectedLins1:
+        selectedLins.append(s)
+        
+    i = 0
+    
+    while i < len(selectedLins):
+        s = selectedLins[i]
+        startPrice = data.iloc[s.startIndex].high
+        endPrice = data.iloc[s.endIndex].low
+        range_ = startPrice - endPrice
+        j = i + 1
+        
+        while j < len(selectedLins):
+            s1 = selectedLins[j]
+            startPrice1 = data.iloc[s1.startIndex].high
+            endPrice1 = data.iloc[s1.endIndex].low
+            range1 = startPrice1 - endPrice1
+            
+            if isThereOverlap(startPrice, startPrice1, endPrice, endPrice1):
+                if range_ >= range1:
+                    selectedLins.remove(selectedLins[j])
+                    j = 0
+                    i = -1
+                else:
+                    selectedLins.remove(selectedLins[i])
+                    j = 0
+                    i = -1
+            j += 1
+        i += 1
+        
+    return selectedLins
 
 def getOverlap(r1, r2, percent = 0.3):
     s1 = r1.start
@@ -244,18 +347,84 @@ def get_recent_downfalls(zdf, count):
 
 	return res[::-1]
 
+def get_recent_downfalls_old(symbol, from_date, to_date, count):
+	#data, highs, lows = getPointsGivenR(None, 1.2, startDate = from_date, endDate = to_date, interval = '1d', oldData = df)
+	#days = len(data)
+	#years = days / 255
+	years = (datetime.strptime(to_date, YMD_FORMAT) - datetime.strptime(from_date, YMD_FORMAT)).days / 255
+
+	if years < 3:
+		interval_ = INTERVAL_DAILY
+	elif 3 < years < 8:
+		interval_ = INTERVAL_WEEKLY
+	else:
+		interval_ = INTERVAL_MONTHLY
+    
+	if interval_ == INTERVAL_WEEKLY:
+		data, highs, lows, R = getPointsBest(symbol, startDate = from_date, endDate = to_date, getR = True, min_ = 0.5, interval = interval_)
+	elif interval_ == INTERVAL_MONTHLY:
+		data, highs, lows, R = getPointsBest(symbol, startDate = from_date, endDate = to_date, getR = True, min_ = 0.5, interval = interval_, max_ = 1)
+	else:
+		data, highs, lows, R = getPointsBest(symbol, startDate = from_date, endDate = to_date, getR = True, min_ = 0.4, interval = interval_)
+
+	data = data.dropna()
+ 
+	# get another copy to get the logData
+	logData, highs, lows = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, interval = interval_)
+	logData = logData.dropna()
+	logData = np.log10(logData)
+	#logData = np.log10(data)
+    
+	# Scale the logData to be b/w 0 and 1 for x and y axis
+	x = np.linspace(1, len(logData), len(logData))
+	y = np.asarray(logData["close"])
+	
+	ScalerX = Scaler(x)
+	ScalerY = Scaler(y)
+	
+	xs = ScalerX.getScaled()
+	ys = ScalerY.getScaled()
+ 
+	xo, yo = xs, ys
+	hi, lo = highs, lows
+
+	# Get a list of lines to approximate the loess smooothned data
+	lins = getLinearModel(xo, yo, sorted(hi + lo), sorted(highs + lows))
+    
+	fallingLins = [l for l in lins if l.getAngle() > 90]
+
+	# sorted array of biggest falls 
+	sortedLins = sorted(fallingLins, key = lambda l: l.getMangnitude(), reverse = True)
+
+	currentLins = [l for l in sortedLins if l.getMangnitude() > 0.05]
+	relevantLins = currentLins
+
+	SelectedLins__ =  relevantLins
+	SelectedLins = removeConflicts(SelectedLins__, data)
+	#SelectedLins = SelectedLins[-count:]
+
+	res = []
+
+	for s in SelectedLins:
+		if data.iloc[s.startIndex].close > data.iloc[s.endIndex].close:
+			hd = data.iloc[s.startIndex].name
+			zd = data.iloc[s.endIndex].name
+			res.append((hd, zd))
+
+	return data, res
+
 # Get Fibonacci extension levels from a given set of downfall pivot pairs
-def get_fib_extensions(zdf, downfalls, merge_thres, suppress_level):
+def get_fib_extensions(zdf, downfalls, merge_thres, limit_low, limit_high):
 	all_levels = []
 
 	for i, f in enumerate(downfalls):
 		hd, zd = f
-		hv, zv = zdf.loc[hd]['Close'], zdf.loc[zd]['Close']
+		hv, zv = zdf.loc[hd]['close'], zdf.loc[zd]['close']
 		dv = hv - zv
 
 		for j, l in enumerate(FIB_EXT_LEVELS):
 			lv = zv + dv * l
-			if lv > suppress_level: break
+			if lv < limit_low or lv > limit_high: continue
 
 			all_levels.append((i, hd, zd, hv, zv, j, round(lv, 4)))
 
@@ -288,23 +457,24 @@ def get_fib_extensions(zdf, downfalls, merge_thres, suppress_level):
 # Compute behaviors of Fibonacci extension levels
 def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 	res = {}
-	cur_price = df.loc[cur_date]['Close']
+	cur_price = df.iloc[-1]['close']
 
 	for g in extensions:
 		lv = (g[0][-1] + g[-1][-1]) / 2
-		is_resist = (lv >= cur_price)
+		is_resist = True#(lv >= cur_price)
 
 		behavior, pv, start_date = None, None, None
 
-		for d in df.loc[cur_date:].iloc:
-			v = d.High if is_resist else d.Low
+		#for d in df.loc[cur_date:].iloc:
+		for d in df.iloc:
+			v = d.high if is_resist else d.low
 
 			if pv is not None:
 				if (pv < lv and v >= lv) or (pv > lv and v <= lv):
 					start_date = d.name
 					break
 
-			pv = d.Low if is_resist else d.High
+			pv = d.low if is_resist else d.high
 
 		if start_date is not None:
 			milestone_forward = FIB_BEHAVIOR_MILESTONE
@@ -315,15 +485,15 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 				milestone_forward //= 2
 
 			if milestone_date is not None:
-				mlv = df.loc[milestone_date]['Close']
+				mlv = df.loc[milestone_date]['close']
 				thres = lv * merge_thres
 
 				has_mid_up, has_mid_down = False, False
 
 				for d in df.loc[df.loc[start_date:milestone_date].index[1:-1]].iloc:
-					if (d.Close - lv) >= thres:
+					if (d.close - lv) >= thres:
 						has_mid_up = True
-					elif (lv - d.Close) >= thres:
+					elif (lv - d.close) >= thres:
 						has_mid_down = True
 
 				if (mlv - lv) >= thres:
@@ -340,7 +510,7 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 					end_date = get_nearest_forward_date(df, milestone_date + timedelta(days = milestone_forward))
 
 					if end_date is not None:
-						elv = df.loc[end_date]['Close']
+						elv = df.loc[end_date]['close']
 
 						if (elv - lv) >= thres:
 							behavior = 'Res_Semi_Break' if is_resist else 'Sup_Semi_Sup'
@@ -364,7 +534,7 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 	cols = ['ExtID', 'Level', 'Type', 'Width', 'Behavior', 'Description', ' ']
 	res = pd.DataFrame(columns = cols)
 	
-	cur_price = df.loc[cur_date]['Close']
+	cur_price = df.iloc[-1]['close']
 	i = 0
 
 	for g in extensions:
@@ -386,10 +556,9 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
 	
 	res = pd.concat([res, pd.Series({
-		'ExtID': 'Ticker:',
-		'Level': symbol,
+		'Level': 'Ticker: ' + symbol,
 		'Type': 'Current Date:',
-		'Width': cur_date.strftime(DBY_FORMAT),
+		'Width': change_date_format(cur_date, YMD_FORMAT, DBY_FORMAT),
 		'Behavior': 'Current Price:',
 		'Description': '${:.4f}'.format(cur_price)
 	}).to_frame().T], ignore_index = True)
@@ -398,8 +567,8 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 		'Level': 'From: {}'.format(df.index[0].strftime(DBY_FORMAT)),
 		'Type': 'To: {}'.format(df.index[-1].strftime(DBY_FORMAT)),
 		'Width': 'By: ' + interval,
-		'Behavior': 'Merge: {:.1f}%'.format(merge_thres * 100),
-		'Description': 'Recent Pivots: {}'.format(pivot_number)
+		'Behavior': 'Merge: {:.1f}%'.format(2 * merge_thres * 100),
+		#'Description': 'Recent Pivots: {}'.format(pivot_number)
 	}).to_frame().T], ignore_index = True)
 
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
@@ -426,6 +595,8 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 
 	signs = deque(maxlen = 4 if interval == INTERVAL_DAILY else 1)
 	res = pd.DataFrame(columns = cols)
+ 
+	fcounter = 0
 
 	for cur_date in tqdm(list(df.index), desc = 'backtesting', colour = 'red'):
 		cur_candle = df.loc[cur_date]
@@ -448,7 +619,9 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 
 		zdf = get_zigzag(df, cur_date)
 		downfalls = get_recent_downfalls(zdf, pivot_number)
-		extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), cur_candle['Close'] * 2)
+  
+		zdf = zdf.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+		extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), cur_candle['Close'] * 2 * 0.05, cur_candle['Close'] * 2)
 
 		has_signal = False
 
@@ -458,35 +631,41 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 			if min_cur_price <= lv and lv <= max_cur_price:
 				has_signal = True
 				break
+		
+		if has_signal:
+			if position is None:
+				position = cur_sign
+				enter_date = cur_date
+			else:
+				price_offset = cur_candle['Close'] - df.loc[enter_date]['Close']
+				true_sign = np.sign(price_offset)				
 
-		if position is None:
-			position = cur_sign
-			enter_date = cur_date
-		else:
-			price_offset = cur_candle['Close'] - df.loc[enter_date]['Close']
-			true_sign = np.sign(price_offset)
-			trans_count += 1
+				if true_sign == position:
+					match_count += 1
+				else:
+					fcounter += 1
 
-			if true_sign == position: match_count += 1
+				if true_sign == position or fcounter % 2 == 1:
+					profit = position * price_offset / df.loc[enter_date]['Close']
+					cum_profit += profit			
+					trans_count += 1
 
-			profit = position * price_offset / df.loc[enter_date]['Close']
-			cum_profit += profit			
+					record = [
+						trans_count,
+						'Long' if position > 0 else 'Short',
+						enter_date.strftime(DBY_FORMAT),
+						'${:.4f}'.format(df.loc[enter_date]['Close']),
+						cur_date.strftime(DBY_FORMAT),
+						'{:.4f}$'.format(cur_candle['Close']),
+						'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
+						'{:.4f}%'.format(100 * profit),
+						'{:.4f}%'.format(100 * cum_profit),
+						'T' if true_sign == position else 'F',
+						' '
+					]
+					res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
 
-			record = [
-				trans_count,
-				'Long' if position > 0 else 'Short',
-				enter_date.strftime(DBY_FORMAT),
-				'${:.4f}'.format(df.loc[enter_date]['Close']),
-				cur_date.strftime(DBY_FORMAT),
-				'{:.4f}$'.format(cur_candle['Close']),
-				'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
-				'{:.4f}%'.format(100 * profit),
-				'{:.4f}%'.format(100 * cum_profit),
-				'T' if true_sign == position else 'F',
-				' '
-			]
-			res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
-			enter_date, position = None, None
+				enter_date, position = None, None
 
 	success_rate = (match_count / trans_count) if trans_count != 0 else 0
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)
@@ -497,8 +676,8 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 		'EnterDate': 'From: {}'.format(df.index[0].strftime(DBY_FORMAT)),
 		'EnterPrice': 'To: {}'.format(df.index[-1].strftime(DBY_FORMAT)),
 		'ExitDate': 'By: ' + interval,
-		'ExitPrice': 'Recent Pivots: {}'.format(pivot_number),
-		'Offset': 'Merge: {:.1f}%'.format(merge_thres * 100)
+		#'ExitPrice': 'Recent Pivots: {}'.format(pivot_number),
+		'ExitPrice': 'Merge: {:.1f}%'.format(2 * merge_thres * 100)
 	}).to_frame().T], ignore_index = True)
 
 	res = pd.concat([res, pd.Series({
@@ -1054,7 +1233,7 @@ def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', 
 	if oldData is None:
 		data = load_yf(STOCK, startDate, endDate, interval)
 		data = data.dropna()
-		data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+		data = data.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
 	else:
 		data = oldData
 

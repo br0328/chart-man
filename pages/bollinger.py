@@ -19,7 +19,7 @@ dash.register_page(__name__, path = '/bolinger', name = 'Bollinger Bands', order
 # Page Layout
 scenario_div = get_scenario_div([
 	get_symbol_input(),
-	get_date_range(),
+	get_date_range(from_date = get_jan_first(get_offset_date_str(get_today_str(), -365 * 3))),
 	get_interval_input(),
 	get_period_input(),
 	get_analyze_button('bollinger')
@@ -72,7 +72,6 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, period):
 		xaxis_range = [stock_data.index.min(), stock_data.index.max()],
 		xaxis = dict(rangeslider = dict(visible = False)),
 		yaxis = dict(rangemode = 'tozero'),
-		height = 600,
-		showlegend = False
+		height = 600
 	)
 	return alert_success('Analysis Completed') + [dcc.Graph(figure = fig, className = 'bollinger_graph')]

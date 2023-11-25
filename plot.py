@@ -45,7 +45,8 @@ def draw_tonexty_hline(fig, xran, y0, y1, color = 'black', width = 1, row = 1, c
 				x = xran,
 				y = np.repeat(y0 if i == 0 else y1, len(xran)),
 				fill = None if i == 0 else 'tonexty',
-				line = dict(color = color, width = width)
+				line = dict(color = color, width = width),
+				showlegend = False
 			),
 			row = row, col = col
 		)
@@ -62,7 +63,8 @@ def draw_marker(fig, x, y, symbol = 'square', color = 'black', size = None, angl
 				size = size,
 				angle = angle,
 				line = dict(color = line_color, width = 0 if line_color is None else 1)
-			)
+			),
+			showlegend = False
 		),
 		row = row, col = col
 	)
@@ -99,7 +101,8 @@ def draw_text(fig, x, y, text, position = 'middle center', color = 'black', size
 			mode = "text",
 			text = [text],
 			textposition = position,
-			textfont = dict(color = color, size = size)
+			textfont = dict(color = color, size = size),
+			showlegend = False
 		),
 		row = row,
 		col = col
