@@ -22,7 +22,7 @@ dash.register_page(__name__, path = '/paramest', name = 'Parameter Estimation', 
 # Page Layout
 scenario_div = get_scenario_div([
 	get_symbol_input(),
-	get_date_range(),
+	get_date_range(from_date = get_jan_first(get_offset_date_str(get_today_str(), -365))),
     get_analyze_button('param-est')
 ])
 out_tab = get_out_tab({

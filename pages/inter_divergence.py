@@ -18,7 +18,7 @@ dash.register_page(__name__, path = '/interdivergence', name = 'Inter Divergence
 
 scenario_div = get_scenario_div([
 	get_two_symbol_inputs(),
-	get_date_range(),
+	get_date_range(from_date = get_jan_first(get_offset_date_str(get_today_str(), -365))),
     get_analyze_button('inter-diver'),
 ])
 out_tab = get_out_tab({
@@ -122,7 +122,14 @@ def on_analyze_clicked(n_clicks, symbol1, symbol2, from_date, to_date):
         outputhigh = f'No Bearish divergence found between the provided inputs.'
 
     return alert_success('Analysis Completed') + [
-        dcc.Graph(figure = fig1, className = 'inter_diver_graph'),
-        dcc.Graph(figure = fig2, className = 'inter_diver_graph'),
+        html.Div([
+            html.Label(outputlow, style = {'padding-top': '20px', 'font-weight': 'bold'}),
+            dcc.Graph(figure = fig1, className = 'inter_diver_graph'),
+            html.Hr()
+        ]),
+        html.Div([
+            html.Label(outputhigh, style = {'padding-top': '20px', 'font-weight': 'bold'}),
+            dcc.Graph(figure = fig2, className = 'inter_diver_graph')
+        ]),
         [html.P(outputlow), html.P(outputhigh)]
     ]

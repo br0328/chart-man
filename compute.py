@@ -389,14 +389,14 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 		'ExtID': 'Ticker:',
 		'Level': symbol,
 		'Type': 'Current Date:',
-		'Width': cur_date.strftime('%d %b %Y'),
+		'Width': cur_date.strftime(DBY_FORMAT),
 		'Behavior': 'Current Price:',
 		'Description': '${:.4f}'.format(cur_price)
 	}).to_frame().T], ignore_index = True)
 
 	res = pd.concat([res, pd.Series({
-		'Level': 'From: {}'.format(df.index[0].strftime('%d %b %Y')),
-		'Type': 'To: {}'.format(df.index[-1].strftime('%d %b %Y')),
+		'Level': 'From: {}'.format(df.index[0].strftime(DBY_FORMAT)),
+		'Type': 'To: {}'.format(df.index[-1].strftime(DBY_FORMAT)),
 		'Width': 'By: ' + interval,
 		'Behavior': 'Merge: {:.1f}%'.format(merge_thres * 100),
 		'Description': 'Recent Pivots: {}'.format(pivot_number)
@@ -475,9 +475,9 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 			record = [
 				trans_count,
 				'Long' if position > 0 else 'Short',
-				enter_date.strftime('%d %b %Y'),
+				enter_date.strftime(DBY_FORMAT),
 				'${:.4f}'.format(df.loc[enter_date]['Close']),
-				cur_date.strftime('%d %b %Y'),
+				cur_date.strftime(DBY_FORMAT),
 				'{:.4f}$'.format(cur_candle['Close']),
 				'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
 				'{:.4f}%'.format(100 * profit),
@@ -494,8 +494,8 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 	res = pd.concat([res, pd.Series({
 		'TransID': 'Ticker:',
 		'Position': symbol,
-		'EnterDate': 'From: {}'.format(df.index[0].strftime('%d %b %Y')),
-		'EnterPrice': 'To: {}'.format(df.index[-1].strftime('%d %b %Y')),
+		'EnterDate': 'From: {}'.format(df.index[0].strftime(DBY_FORMAT)),
+		'EnterPrice': 'To: {}'.format(df.index[-1].strftime(DBY_FORMAT)),
 		'ExitDate': 'By: ' + interval,
 		'ExitPrice': 'Recent Pivots: {}'.format(pivot_number),
 		'Offset': 'Merge: {:.1f}%'.format(merge_thres * 100)

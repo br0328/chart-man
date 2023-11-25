@@ -325,7 +325,7 @@ def get_dashboard_content(df, last_date):
 	return html.Div(
 		children = [
 			html.H2(
-				'The latest trading day available is {}.'.format(last_date.strftime(' %d %b %Y')),
+				'The latest trading day available is {}.'.format(last_date.strftime(DBY_FORMAT)),
 				style = {'marginBottom': '20px'}
 			),
 			dash_table.DataTable(

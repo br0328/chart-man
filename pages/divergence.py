@@ -180,7 +180,7 @@ def get_divergence_data(stock_symbol, stdate, endate, filename = None):
                 stockValueEnd = stockPart['y1']
 
                 #ped = get_nearest_forward_date(df, endDate)
-                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, '%d %b %Y')))
+                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, DBY_FORMAT)))
             
             t2s = []
             
@@ -195,7 +195,7 @@ def get_divergence_data(stock_symbol, stdate, endate, filename = None):
                 stockValueEnd = stockPart['y1']
 
                 #ped = get_nearest_forward_date(df, endDate)
-                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, '%d %b %Y')))
+                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, DBY_FORMAT)))
             
             TT1s.append(t1s)
             TT2s.append(t2s)
@@ -244,8 +244,8 @@ def get_divergence_data(stock_symbol, stdate, endate, filename = None):
                 
                 tempr = [
                     'Long',
-                    tempr[0].strftime('%d %b %Y'),
-                    tempr[1].strftime('%d %b %Y'),
+                    tempr[0].strftime(DBY_FORMAT),
+                    tempr[1].strftime(DBY_FORMAT),
                     '{:.4f}'.format(tempr[2]),
                     '{:.4f}'.format(tempr[3]),
                     tempr[4],
@@ -276,8 +276,8 @@ def get_divergence_data(stock_symbol, stdate, endate, filename = None):
                     
                 tempr = [
                     'Short',
-                    tempr[0].strftime('%d %b %Y'),
-                    tempr[1].strftime('%d %b %Y'),
+                    tempr[0].strftime(DBY_FORMAT),
+                    tempr[1].strftime(DBY_FORMAT),
                     '{:.4f}'.format(tempr[2]),
                     '{:.4f}'.format(tempr[3]),
                     tempr[4],
@@ -300,8 +300,8 @@ def get_divergence_data(stock_symbol, stdate, endate, filename = None):
             {},
             {
                 'EntryDate': f"Ticker: {stock_symbol}",
-                'ExitDate': f"From: {sdate.strftime('%d %b %Y')}",
-                '%D_ValStart': f"To: {edate.strftime('%d %b %Y')}"
+                'ExitDate': f"From: {sdate.strftime(DBY_FORMAT)}",
+                '%D_ValStart': f"To: {edate.strftime(DBY_FORMAT)}"
             },
             {
                 'EntryDate': 'Success Rate:',

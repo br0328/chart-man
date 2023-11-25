@@ -17,7 +17,7 @@ import dash
 dash.register_page(__name__, path = '/marketindex', name = 'Market Indices Divergence', order = '06')
 
 scenario_div = get_scenario_div([
-	get_date_range(),
+	get_date_range(from_date = get_jan_first(get_offset_date_str(get_today_str(), -365))),
     get_analyze_button('market-index'),
 ])
 out_tab = get_out_tab({
@@ -125,9 +125,21 @@ def on_analyze_clicked(n_clicks, from_date, to_date):
             outputhigh = f'No Bearish divergence found between the provided inputs.'
         
         figs.extend([
-            dcc.Graph(figure = fig1, className = 'market_index_graph'),
-            dcc.Graph(figure = fig2, className = 'market_index_graph')
+            html.Div([
+                html.Div(f"{symbol1[1:]} vs {symbol2[1:]}", style = {'padding-top': '20px', 'font-weight': 'bold', 'text-align': 'center', 'font-size': '20px'}),
+                html.Label(outputlow),
+                dcc.Graph(figure = fig1, className = 'market_index_graph')
+            ]),
+            html.Div([
+                html.Label(outputlow),
+                dcc.Graph(figure = fig2, className = 'market_index_graph'),
+                html.Hr()
+            ])
         ])
-        report.append(html.Div([html.P(outputlow), html.P(outputhigh)], style = {'margin-bottom': '40px'}))
+        report.append(html.Div([
+                html.P(f"- {symbol1[1:]} vs {symbol2[1:]}", style = {'padding-top': '20px', 'font-weight': 'bold', 'font-size': '20px'}),
+                html.P(outputlow),
+                html.P(outputhigh)
+            ], style = {'margin-bottom': '40px'}))
 
     return alert_success('Analysis Completed') + figs + [report]
