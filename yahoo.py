@@ -10,6 +10,10 @@ import glob
 import os
 
 def load_yf(symbol, start, end, interval, fit_today = True, for_backup = False):
+	if start is None: start = '1900-01-01'
+	if end is None: end = '2100-01-01'
+	if interval is None: interval = INTERVAL_DAILY
+    
 	if yf_on:
 		df = yf.download(symbol, start = start, end = get_offset_date_str(end, 1), interval = '1d', progress = False)
 		df = df.drop('Adj Close', axis = 1)

@@ -69,14 +69,74 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date):
     if cur_date > to_date: cur_date = to_date
     
     cur_date = get_timestamp(cur_date)
-    fig, df = runStochDivergance(symbol, from_date, to_date, cur_date = cur_date)
+    #fig, df = runStochDivergance(symbol, from_date, to_date, cur_date = cur_date)
     
+    out1, out2 = get_divergence_data(symbol, from_date, to_date)
+    df, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
+    D = TA.STOCHD(df)
+    
+    fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.01, subplot_titles = ('Stock prices', 'Stochastic Indicator'), row_width = [0.29,0.7])
+    fig.update_yaxes(type = 'log', row = 1, col = 1)
+    fig.add_trace(go.Candlestick(x = df.index, open = df['open'], high = df['high'], low = df['low'], close = df['close'], showlegend = False), row = 1, col = 1)
+    fig.update_layout(xaxis_rangeslider_visible = False, yaxis_tickformat = '0')
+    
+    fig.add_trace(go.Scatter(x = D.index, y = D, showlegend = False), row = 2, col = 1)
+    fig.add_trace(go.Scatter(x = df.index, y = df['close'].rolling(10).mean(), name = 'MA-10W'))
+    fig.add_trace(go.Scatter(x = df.index, y = df['close'].rolling(40).mean(), name = 'MA-40W'))
+    
+    lines_to_draw = []
+    
+    for dStart, dEnd, _, _, _, _, _ in out1:
+        lines_to_draw.extend(get_lines(dStart, dEnd, df, D, True))
+    
+    for dStart, dEnd, _, _, _, _, _ in out2:
+        lines_to_draw.extend(get_lines(dStart, dEnd, df, D, False))
+    
+    lines_to_draw = [d for d in lines_to_draw if d['x1'] < cur_date]
+    fig.update_layout(shapes = lines_to_draw)
+
+    fig.update_xaxes(
+        rangeslider_visible = False,
+        range = [df.index[0], df.index[-1]],
+        row = 1, col = 1
+    )
+    fig.update_xaxes(
+        rangeslider_visible = False,
+        range = [df.index[0], df.index[-1]],
+        row = 2, col = 1
+    )
+
     # Pivot date plot
     draw_vline_shape(fig, cur_date, min(df['low']), max(df['high']), 'darkgreen')
     draw_annotation(fig, cur_date, np.log10(min(df['low'])), cur_date.strftime(' %d %b %Y') + ' →',
         xanchor = 'left', yanchor = 'bottom', color = 'darkgreen', size = 14)
 
     return alert_success('Analysis Completed') + ['Plot', dcc.Graph(figure = fig, className = 'diver_graph')]
+
+def get_lines(dStart, dEnd, df, D, is_bullish):
+    return [dict(
+            x0 = df.loc[dStart].name,
+            y0 = D.loc[dStart],
+            x1 = df.loc[dEnd].name,
+            y1 = D.loc[dEnd],
+            type = 'line',
+            xref = 'x2',
+            yref = 'y2',
+            line_width = 4,
+            line_color = 'blue' if is_bullish else 'black'
+        ),
+        dict(
+            x0 = df.loc[dStart].name,
+            y0 = df.loc[dStart].low if is_bullish else df.loc[dStart].high,
+            x1 = df.loc[dEnd].name,
+            y1 = df.loc[dEnd].low if is_bullish else df.loc[dEnd].high,
+            type = 'line',
+            xref = 'x',
+            yref = 'y',
+            line_width = 4,
+            line_color = 'blue' if is_bullish else 'black'
+        )
+    ]
 
 # Triggered when Symbol combo box changed
 @callback(
@@ -142,10 +202,10 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
 	# 	symbol, from_date, to_date
     # )
     # df1, df2 = get_divergence_data(symbol, from_date, to_date, csv_path)
-    df, sr, cp = get_divergence_data(symbol, from_date, to_date)
+    df = get_divergence_data(symbol, from_date, to_date)
     
-    csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}_sr={:.1f}%_cp={:.1f}%.csv'.format(
-		symbol, from_date, to_date, sr * 100, cp * 100
+    csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}.csv'.format(
+		symbol, from_date, to_date
     )
     df.to_csv(csv_path, index = False)
     
@@ -153,170 +213,154 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
     return alert_success('Analysis Completed') + ['Report', get_report_content(df, csv_path)]
 
 # Backtest
-def get_divergence_data(stock_symbol, stdate, endate, filename = None):
-        year, month, day = map(int, stdate.split('-'))
-        sdate = date(year, month, day)
+# def get_divergence_data(stock_symbol, stdate, endate, filename = None):
+#         year, month, day = map(int, stdate.split('-'))
+#         sdate = date(year, month, day)
         
-        year1, month1, day1 = map(int, endate.split('-'))
-        edate = date(year1, month1, day1 )
+#         year1, month1, day1 = map(int, endate.split('-'))
+#         edate = date(year1, month1, day1 )
     
-        COMMON_START_DATE = sdate
-        STOCK = stock_symbol
-        #file_name = filename
+#         COMMON_START_DATE = sdate
+#         STOCK = stock_symbol
 
-        #days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'w').strftime('%Y-%m-%d').tolist()
-        days = [(edate - timedelta(days = 1)).strftime(YMD_FORMAT)]
-        TT1s, TT2s = [], []
+#         days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
+#         TT1s, TT2s = [], []
 
-        for dd in tqdm(days):
-            # Calculate divergence and get transactions
-            type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
-            t1s = []
+#         for dd in tqdm(days):
+#             # Calculate divergence and get transactions
+#             type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
+#             t1s = []
             
-            for t in type1:
-                stockPart = t[1]
-                indicatorPart = t[0]
-                startDate = stockPart['x0']
-                endDate = stockPart['x1']
-                DvalueStart = indicatorPart['y0']
-                DvalueEnd = indicatorPart['y1']
-                stockValueStart = stockPart['y0']
-                stockValueEnd = stockPart['y1']
-
-                #ped = get_nearest_forward_date(df, endDate)
-                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, DBY_FORMAT)))
+#             for t in type1:
+#                 stockPart = t[1]
+#                 indicatorPart = t[0]
+#                 startDate = stockPart['x0']
+#                 endDate = stockPart['x1']
+#                 DvalueStart = indicatorPart['y0']
+#                 DvalueEnd = indicatorPart['y1']
+#                 stockValueStart = stockPart['y0']
+#                 stockValueEnd = stockPart['y1']
+#                 t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
             
-            t2s = []
+#             t2s = []
             
-            for t in type2:
-                stockPart = t[1]
-                indicatorPart = t[0]
-                startDate = stockPart['x0']
-                endDate = stockPart['x1']
-                DvalueStart = indicatorPart['y0']
-                DvalueEnd = indicatorPart['y1']
-                stockValueStart = stockPart['y0']
-                stockValueEnd = stockPart['y1']
-
-                #ped = get_nearest_forward_date(df, endDate)
-                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, change_date_format(dd, YMD_FORMAT, DBY_FORMAT)))
+#             for t in type2:
+#                 stockPart = t[1]
+#                 indicatorPart = t[0]
+#                 startDate = stockPart['x0']
+#                 endDate = stockPart['x1']
+#                 DvalueStart = indicatorPart['y0']
+#                 DvalueEnd = indicatorPart['y1']
+#                 stockValueStart = stockPart['y0']
+#                 stockValueEnd = stockPart['y1']
+#                 t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
             
-            TT1s.append(t1s)
-            TT2s.append(t2s)
+#             TT1s.append(t1s)
+#             TT2s.append(t2s)
 
-        def find_unique_smallest_date(arrays_of_tuples):
-            unique_tuples = defaultdict(list)
+#         def find_unique_smallest_date(arrays_of_tuples):
+#             unique_tuples = defaultdict(list)
 
-            for arr in arrays_of_tuples:
-                for tup in arr:
-                    key = tuple(tup[:-1])
-                    date_str = tup[-1]
+#             for arr in arrays_of_tuples:
+#                 for tup in arr:
+#                     key = tuple(tup[:-1])
+#                     date_str = tup[-1]
 
-                    if key not in unique_tuples or date_str < unique_tuples[key][-1][-1]:
-                        unique_tuples[key] = [(tup, date_str)]
+#                     if key not in unique_tuples or date_str < unique_tuples[key][-1][-1]:
+#                         unique_tuples[key] = [(tup, date_str)]
 
-            result = [min(tups, key = lambda x: x[-1]) for tups in unique_tuples.values()]
-            return result
+#             result = [min(tups, key = lambda x: x[-1]) for tups in unique_tuples.values()]
+#             return result
 
-        out1 = find_unique_smallest_date(TT1s)
-        out2 = find_unique_smallest_date(TT2s)
-        
-        columns = ['Position', 'EntryDate', 'ExitDate', '%D_ValStart', '%D_ValEnd', 'EntryPrice', 'ExitPrice', 'Return', 'TempOrder']
-        #rec1, rec2 = [], []
-        records = []
-        
-        #with open(file_name, "w") as fp:
-        if True:
-            #write_line(fp, ['TYPE 1 DIVERGANCE'])
-            #write_line(fp, columns)
+#         def rearrange(od):
+#             od = [list(t[0]) for t in od]
+#             od.sort(key = lambda x : x[0])
             
-            match_count, overall_return = 0, 0
-            
-            for t in out1:
-                #tempr = []
-                tempr = list(t[0])
+#             recs = []
+
+#             for i in range(len(od)):
+#                 tr = od[i]
+#                 found_in = False
                 
-                # for tt in t[0]:
-                #     tempr.append(tt)
-                
-                if tempr[4] > tempr[5]: match_count += 1
-                
-                profit = -(tempr[5] - tempr[4]) / tempr[4]
-                #if profit < -0.015: continue
-                
-                overall_return += profit
-                
-                tempr = [
-                    'Long',
-                    tempr[0].strftime(DBY_FORMAT),
-                    tempr[1].strftime(DBY_FORMAT),
-                    '{:.4f}'.format(tempr[2]),
-                    '{:.4f}'.format(tempr[3]),
-                    tempr[4],
-                    tempr[5],
-                    '{:.4f}%'.format(100 * profit),
-                    tempr[0]
-                ]
-                #write_line(fp, tempr)
-                #rec1.append(tempr)
-                records.append(tempr)
-                
-            #write_line(fp, ['\nTYPE 2 DIVERGANCE'])
-            #write_line(fp, columns)
-            
-            for t in out2:
-                #tempr = []
-                tempr = list(t[0])
-                
-                # for tt in t[0]:
-                #     tempr.append(tt)
-                
-                if tempr[4] < tempr[5]: match_count += 1
-                
-                profit = -(tempr[4] - tempr[5]) / tempr[4]
-                #if profit < -0.015: continue
-                
-                overall_return += profit
+#                 for j in range(len(od)):
+#                     if i == j: continue
+#                     otr = od[j]
                     
-                tempr = [
-                    'Short',
-                    tempr[0].strftime(DBY_FORMAT),
-                    tempr[1].strftime(DBY_FORMAT),
-                    '{:.4f}'.format(tempr[2]),
-                    '{:.4f}'.format(tempr[3]),
-                    tempr[4],
-                    tempr[5],
-                    '{:.4f}%'.format(100 * profit),
-                    tempr[0]
-                ]
-                #write_line(fp, tempr)
-                #rec2.append(tempr)
-                records.append(tempr)
-        
-        #df1 = pd.DataFrame(rec1, columns = columns)
-        #df2 = pd.DataFrame(rec2, columns = columns)
-        
-        records.sort(key = lambda r: r[-1])
-        df = pd.DataFrame(records, columns = columns)
-        df = df.drop('TempOrder', axis = 1)
-        
-        last_records = [
-            {},
-            {
-                'EntryDate': f"Ticker: {stock_symbol}",
-                'ExitDate': f"From: {sdate.strftime(DBY_FORMAT)}",
-                '%D_ValStart': f"To: {edate.strftime(DBY_FORMAT)}"
-            },
-            {
-                'EntryDate': 'Success Rate:',
-                'ExitDate': '{:.1f}%'.format(match_count / len(df) * 100),
-                '%D_ValStart': 'Cumulative Profit:',
-                '%D_ValEnd': '{:.1f}%'.format(overall_return * 100)
-            },
-            {}
-        ]
-        for r in last_records:
-            df = pd.concat([df, pd.Series(r).to_frame().T], ignore_index = True)
+#                     if otr[0] <= tr[0] and tr[1] <= otr[1]:
+#                         found_in = True
+#                         break
+                
+#                 if found_in: continue
+#                 recs.append(tr)
+            
+#             while True:
+#                 found_adj = False
+                
+#                 for i in range(len(recs) - 1):
+#                     tr, otr = recs[i], recs[i + 1]
+                    
+#                     if tr[1] == otr[0]:
+#                         tr[1] = otr[1]
+#                         tr[3] = otr[3]
+#                         tr[5] = otr[5]
+#                         tr[6] = otr[6]
+                        
+#                         found_adj = True
+#                         recs.pop(i + 1)
+#                         break
+                
+#                 if not found_adj: break
+            
+#             return recs                
 
-        #return df1, df2
-        return df, match_count / len(df), overall_return
+#         out1 = find_unique_smallest_date(TT1s)
+#         out2 = find_unique_smallest_date(TT2s)
+        
+#         out1 = rearrange(out1)
+#         out2 = rearrange(out2)
+        
+#         columns = ['Type', 'SDate', 'EDate', '%D_Start', '%D_End', 'SPrice', 'EPrice', 'EPutDate']
+#         records = []
+
+#         if True:
+#             for tempr in out1:
+#                 tempr = [
+#                     'I',
+#                     tempr[0].strftime(DBY_FORMAT),
+#                     tempr[1].strftime(DBY_FORMAT),
+#                     '{:.4f}'.format(tempr[2]),
+#                     '{:.4f}'.format(tempr[3]),
+#                     tempr[4],
+#                     tempr[5],
+#                     change_date_format(tempr[6], YMD_FORMAT, DBY_FORMAT)
+#                 ]
+#                 records.append(tempr)
+                
+#             for tempr in out2:
+#                 tempr = [
+#                     'II',
+#                     tempr[0].strftime(DBY_FORMAT),
+#                     tempr[1].strftime(DBY_FORMAT),
+#                     '{:.4f}'.format(tempr[2]),
+#                     '{:.4f}'.format(tempr[3]),
+#                     tempr[4],
+#                     tempr[5],
+#                     change_date_format(tempr[6], YMD_FORMAT, DBY_FORMAT)
+#                 ]
+#                 records.append(tempr)
+        
+#         df = pd.DataFrame(records, columns = columns)
+        
+#         last_records = [
+#             {},
+#             {
+#                 'SDate': f"Ticker: {stock_symbol}",
+#                 'EDate': f"From: {sdate.strftime(DBY_FORMAT)}",
+#                 '%D_Start': f"To: {edate.strftime(DBY_FORMAT)}"
+#             },
+#             {}
+#         ]
+#         for r in last_records:
+#             df = pd.concat([df, pd.Series(r).to_frame().T], ignore_index = True)
+
+#         return df

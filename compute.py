@@ -1,8 +1,8 @@
 
 from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from loess.loess_1d import loess_1d
-import matplotlib.dates as mdates
+from collections import defaultdict
 from collections import deque
 from scipy import stats
 from constant import *
@@ -12,6 +12,7 @@ from yahoo import *
 from data import *
 from config import *
 from util import *
+import matplotlib.dates as mdates
 import plotly.graph_objects as go
 import pandas_ta as ta
 import pandas as pd
@@ -1311,7 +1312,7 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 	highs = highs[highs >= 0]
 	highs = highs.tolist()
 
-	K = TA.STOCH(data, 14)
+	#K = TA.STOCH(data, 14) # Why not use?
 	D = TA.STOCHD(data)
 
 	data = data[15:]
@@ -1319,7 +1320,7 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 	x = D.to_numpy()
 
 	highsStoch, lowsStoch = getPointsforArray(x, 1.05)
-	highsStoch.append(len(D)-1)
+	highsStoch.append(len(D) - 1)
 
 	rr = getReigons(lows, data['low'])
 	fr = getFinalReigons(rr)
@@ -1370,33 +1371,34 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 				dStart = start
 				dEnd = ending
 				
-				a1 = dict(
-					x0 = data.iloc[dStart].name,
-					y0 = D.iloc[dStart],
-					x1 = data.iloc[dEnd].name,
-					y1 = D.iloc[dEnd],
-					type = 'line',
-					xref = 'x2',
-					yref = 'y2',
-					line_width = 4,
-					line_color = 'blue'
-				)
-				b1 = dict(
-					x0 = data.iloc[stockStart].name,
-					y0 = data.iloc[stockStart].low,
-					x1 = data.iloc[stockEnd].name,
-					y1 = data.iloc[stockEnd].low,
-					type = 'line',
-					xref = 'x',
-					yref = 'y',
-					line_width = 4,
-					line_color = 'blue'
-				)
-				typeONEs.append((a1, b1))
-				
-				if not return_csv:
-					lines_to_draw.append(a1)
-					lines_to_draw.append(b1)                
+				if data.iloc[stockStart].low > data.iloc[stockEnd].low: # Nikola Added
+					a1 = dict(
+						x0 = data.iloc[dStart].name,
+						y0 = D.iloc[dStart],
+						x1 = data.iloc[dEnd].name,
+						y1 = D.iloc[dEnd],
+						type = 'line',
+						xref = 'x2',
+						yref = 'y2',
+						line_width = 4,
+						line_color = 'blue'
+					)
+					b1 = dict(
+						x0 = data.iloc[stockStart].name,
+						y0 = data.iloc[stockStart].low,
+						x1 = data.iloc[stockEnd].name,
+						y1 = data.iloc[stockEnd].low,
+						type = 'line',
+						xref = 'x',
+						yref = 'y',
+						line_width = 4,
+						line_color = 'blue'
+					)
+					typeONEs.append((a1, b1))
+					
+					if not return_csv:
+						lines_to_draw.append(a1)
+						lines_to_draw.append(b1)                
 
 	typeTWOs = []
 
@@ -1426,32 +1428,33 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 
 				dStart = start
 				dEnd = ending
-			
-				a1 = dict(
-					x0 = data.iloc[dStart].name,
-					y0 = D.iloc[dStart],
-					x1 = data.iloc[dEnd].name,
-					y1 = D.iloc[dEnd],
-					type = 'line',
-					xref = 'x2',
-					yref = 'y2',
-					line_width = 4
-				)
-				a2 = dict(
-					x0 = data.iloc[stockStart].name,
-					y0 = data.iloc[stockStart].high,
-					x1 = data.iloc[stockEnd].name,
-					y1 = data.iloc[stockEnd].high,
-					type = 'line',
-					xref = 'x',
-					yref = 'y',
-					line_width = 4
-    			)
-				typeTWOs.append((a1, a2))
-				
-				if not return_csv:
-					lines_to_draw.append(a1)
-					lines_to_draw.append(a2)
+
+				if data.iloc[stockStart].high < data.iloc[stockEnd].high: # Nikola Added
+					a1 = dict(
+						x0 = data.iloc[dStart].name,
+						y0 = D.iloc[dStart],
+						x1 = data.iloc[dEnd].name,
+						y1 = D.iloc[dEnd],
+						type = 'line',
+						xref = 'x2',
+						yref = 'y2',
+						line_width = 4
+					)
+					a2 = dict(
+						x0 = data.iloc[stockStart].name,
+						y0 = data.iloc[stockStart].high,
+						x1 = data.iloc[stockEnd].name,
+						y1 = data.iloc[stockEnd].high,
+						type = 'line',
+						xref = 'x',
+						yref = 'y',
+						line_width = 4
+					)
+					typeTWOs.append((a1, a2))
+					
+					if not return_csv:
+						lines_to_draw.append(a1)
+						lines_to_draw.append(a2)
 
 	if not return_csv:
 		if cur_date is not None: lines_to_draw = [d for d in lines_to_draw if d['x1'] < cur_date]
@@ -1556,133 +1559,245 @@ def getPairs(xx, yy, loesFraction, primeLoessFraction=0.05):
     return pairs
 
 def plotter1(pairs, xx, yy, xScaler, yScaler, intervalSET, data, y):
-    figures=[]
-    cols = ['black', 'blue', 'green', "yellow"]
-    currentPrice = yScaler.getScaledvalue(y[-1])
-    #print(currentPrice)
-    data = data.copy()
+	figures=[]
+	cols = ['black', 'blue', 'green', "yellow"]
+	currentPrice = yScaler.getScaledvalue(y[-1])
+	#print(currentPrice)
+	#print(data)
 
-    plotted = []
-    data = data.reset_index()
-    data['Date1'] = data['Date'].map(mdates.date2num)
-    
-    #print("date",data)
-    j = 0
+	#data = data.copy()
+	data['Date'] = list(data.index)
+	plotted = []
+	data = data.reset_index()    
+	data['Date1'] = data['Date'].map(mdates.date2num)
 
-    for pp in pairs:
-        #print(pp, "uy4rwegk")
+	#print("date",data)
+	j = 0
 
-        if yy[pp[0]] < yy[pp[1]]:
-            min_chosen = yy[pp[0]]
-            max_chosen = yy[pp[1]]
-            p = (pp[0], pp[1])
-        else:
-            max_chosen = yy[pp[0]]
-            min_chosen = yy[pp[1]]
-            p = (pp[1], pp[0])
+	for pp in pairs:
+		#print(pp, "uy4rwegk")
 
-        min_ = min(yy[max(0, p[0] - 7):p[0] + 7])
-        max_ = max(yy[max(0, p[1] - 7):p[1] + 7])
+		if yy[pp[0]] < yy[pp[1]]:
+			min_chosen = yy[pp[0]]
+			max_chosen = yy[pp[1]]
+			p = (pp[0], pp[1])
+		else:
+			max_chosen = yy[pp[0]]
+			min_chosen = yy[pp[1]]
+			p = (pp[1], pp[0])
 
-        max_index = np.argmax(np.asarray(yy[max(0, p[0] - 7):p[0] + 7]))
-        min_index = np.argmin(np.asarray(yy[max(0, p[0] - 7):p[0] + 7]))
+		min_ = min(yy[max(0, p[0] - 7):p[0] + 7])
+		max_ = max(yy[max(0, p[1] - 7):p[1] + 7])
 
-        actualMinINdex = min_index - 7 + max(0, p[0] - 7)
-        actualMaxINdex = max_index - 7 + max(0, p[1] - 7)
+		max_index = np.argmax(np.asarray(yy[max(0, p[0] - 7):p[0] + 7]))
+		min_index = np.argmin(np.asarray(yy[max(0, p[0] - 7):p[0] + 7]))
 
-        firstDate = data['Date1'][0]
-        f1=data['Date'][0]
-        l1=data['Date'][len(data)-1]
-        if intervalSET == INTERVAL_WEEKLY:
-            plottedPoint = [
-                (xScaler.getUnscaledValue(min(xx[p[0]], xx[p[0]])) * 7) + firstDate,
-                (xScaler.getUnscaledValue(xx[p[1]]) * 7) + firstDate
-            ], [
-                10 ** yScaler.getUnscaledValue(min_),
-                10 ** yScaler.getUnscaledValue(min_)
-            ]
-        if intervalSET == INTERVAL_MONTHLY:
-            plottedPoint = [
-                (xScaler.getUnscaledValue(min(xx[p[0]], xx[p[0]])) * 30.5) + firstDate,
-                (xScaler.getUnscaledValue(min(xx[p[1]], xx[p[1]])) * 30.5) + firstDate
-            ], [
-                10 ** yScaler.getUnscaledValue(min_),
-                10 ** yScaler.getUnscaledValue(min_)
-            ]
+		actualMinINdex = min_index - 7 + max(0, p[0] - 7)
+		actualMaxINdex = max_index - 7 + max(0, p[1] - 7)
+
+		firstDate = data['Date1'][0]
+		f1 = data['Date'][0]
+		l1 = data['Date'][len(data)-1]
+
+		if intervalSET == INTERVAL_WEEKLY:
+			plottedPoint = [
+				(xScaler.getUnscaledValue(min(xx[p[0]], xx[p[0]])) * 7) + firstDate,
+				(xScaler.getUnscaledValue(xx[p[1]]) * 7) + firstDate
+			], [
+				10 ** yScaler.getUnscaledValue(min_),
+				10 ** yScaler.getUnscaledValue(min_)
+			]
+		if intervalSET == INTERVAL_MONTHLY:
+			plottedPoint = [
+				(xScaler.getUnscaledValue(min(xx[p[0]], xx[p[0]])) * 30.5) + firstDate,
+				(xScaler.getUnscaledValue(min(xx[p[1]], xx[p[1]])) * 30.5) + firstDate
+			], [
+				10 ** yScaler.getUnscaledValue(min_),
+				10 ** yScaler.getUnscaledValue(min_)
+			]
+		
+		#print(min_chosen <= max_chosen, "jhbjhbn")
+
+		if not plottedPoint in plotted:
+			plotted.append(plottedPoint)
+
+			candlestick = go.Candlestick(
+				x = data['Date'],
+				open = data['open'],
+				high = data['high'],
+				low = data['low'],
+				close = data['close'],
+				increasing_line_color = 'green',
+				decreasing_line_color = 'red'
+			)
+			layout = go.Layout(
+				title='Candlestick Chart',
+				yaxis=dict(type='log', autorange=True),
+				xaxis=dict(
+					type='date',
+					tickformat='%Y-%m-%d',  
+					rangeslider=dict(visible=False)
+				)
+			)
+
+			fig = go.Figure(data=[candlestick], layout=layout)
+
+			fig.update_xaxes(
+				rangeslider=dict(visible=False)
+			)
+			fig.update_layout(
+			autosize=False,
+			width=1200,
+			height=800,)
+
+			fig.add_trace(go.Scatter(
+				x=[f1,
+				l1],
+				y=[10 ** yScaler.getUnscaledValue(min_), 10 ** yScaler.getUnscaledValue(min_)],
+				mode='lines'
+			))
+
+			fig.add_trace(go.Scatter(
+						x=[f1,
+				l1],
+				y=[10 ** yScaler.getUnscaledValue(max_), 10 ** yScaler.getUnscaledValue(max_)],
+				mode='lines'
+			))
+
+			nums = [0.2366, 0.382, 0.5, 0.618, 0.764, 0.786, 0.886]
+			for num in nums:
+				if intervalSET == INTERVAL_WEEKLY:
+					y = 10 ** yScaler.getUnscaledValue(max_) - (
+							(10 ** yScaler.getUnscaledValue(max_) - 10 ** yScaler.getUnscaledValue(min_)) * num)
+					fig.add_trace(go.Scatter(
+						x=[f1,l1],
+						y=[y, y],
+						mode='lines',
+						name=str(num)
+					))
+				elif intervalSET == INTERVAL_MONTHLY:
+					y = 10 ** yScaler.getUnscaledValue(max_) - (
+							(10 ** yScaler.getUnscaledValue(max_) - 10 ** yScaler.getUnscaledValue(min_)) * num)
+					fig.add_trace(go.Scatter(
+						x=[f1,l1],
+						y=[y, y],
+						mode='lines',
+						name=str(num)
+					))
+				
+
+			figures.append(fig)
+
+		j += 1
+
+	return figures
+
+def get_divergence_data(stock_symbol, stdate, endate):
+        year, month, day = map(int, stdate.split('-'))
+        sdate = date(year, month, day)
         
-        #print(min_chosen <= max_chosen, "jhbjhbn")
+        year1, month1, day1 = map(int, endate.split('-'))
+        edate = date(year1, month1, day1 )
+    
+        COMMON_START_DATE = sdate
+        STOCK = stock_symbol
 
-        if not plottedPoint in plotted:
-            plotted.append(plottedPoint)
+        days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
+        TT1s, TT2s = [], []
 
-            candlestick = go.Candlestick(
-                x=data['Date'],
-                open=data['open'],
-                high=data['high'],
-                low=data['low'],
-                close=data['close'],
-                increasing_line_color='green',
-                decreasing_line_color='red'
-            )
+        for dd in tqdm(days):
+            # Calculate divergence and get transactions
+            type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
+            t1s = []
+            
+            for t in type1:
+                stockPart = t[1]
+                indicatorPart = t[0]
+                startDate = stockPart['x0']
+                endDate = stockPart['x1']
+                DvalueStart = indicatorPart['y0']
+                DvalueEnd = indicatorPart['y1']
+                stockValueStart = stockPart['y0']
+                stockValueEnd = stockPart['y1']
+                t1s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
+            
+            t2s = []
+            
+            for t in type2:
+                stockPart = t[1]
+                indicatorPart = t[0]
+                startDate = stockPart['x0']
+                endDate = stockPart['x1']
+                DvalueStart = indicatorPart['y0']
+                DvalueEnd = indicatorPart['y1']
+                stockValueStart = stockPart['y0']
+                stockValueEnd = stockPart['y1']
+                t2s.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
+            
+            TT1s.append(t1s)
+            TT2s.append(t2s)
 
-            layout = go.Layout(
-                title='Candlestick Chart',
-                yaxis=dict(type='log', autorange=True),
-                xaxis=dict(
-                    type='date',
-                    tickformat='%Y-%m-%d',  
-                    rangeslider=dict(visible=False)
-                )
-            )
+        def find_unique_smallest_date(arrays_of_tuples):
+            unique_tuples = defaultdict(list)
 
-            fig = go.Figure(data=[candlestick], layout=layout)
+            for arr in arrays_of_tuples:
+                for tup in arr:
+                    key = tuple(tup[:-1])
+                    date_str = tup[-1]
 
-            fig.update_xaxes(
-                rangeslider=dict(visible=False)
-            )
-            fig.update_layout(
-            autosize=False,
-            width=1200,
-            height=800,)
+                    if key not in unique_tuples or date_str < unique_tuples[key][-1][-1]:
+                        unique_tuples[key] = [(tup, date_str)]
 
-            fig.add_trace(go.Scatter(
-                x=[f1,
-                l1],
-                y=[10 ** yScaler.getUnscaledValue(min_), 10 ** yScaler.getUnscaledValue(min_)],
-                mode='lines'
-            ))
+            result = [min(tups, key = lambda x: x[-1]) for tups in unique_tuples.values()]
+            return result
 
-            fig.add_trace(go.Scatter(
-                     x=[f1,
-                l1],
-                y=[10 ** yScaler.getUnscaledValue(max_), 10 ** yScaler.getUnscaledValue(max_)],
-                mode='lines'
-            ))
+        def rearrange(od):
+            od = [list(t[0]) for t in od]
+            od.sort(key = lambda x : x[0])
+            
+            recs = []
 
-            nums = [0.2366, 0.382, 0.5, 0.618, 0.764, 0.786, 0.886]
-            for num in nums:
-                if intervalSET == INTERVAL_WEEKLY:
-                    y = 10 ** yScaler.getUnscaledValue(max_) - (
-                            (10 ** yScaler.getUnscaledValue(max_) - 10 ** yScaler.getUnscaledValue(min_)) * num)
-                    fig.add_trace(go.Scatter(
-                        x=[f1,l1],
-                        y=[y, y],
-                        mode='lines',
-                        name=str(num)
-                    ))
-                elif intervalSET == INTERVAL_MONTHLY:
-                    y = 10 ** yScaler.getUnscaledValue(max_) - (
-                            (10 ** yScaler.getUnscaledValue(max_) - 10 ** yScaler.getUnscaledValue(min_)) * num)
-                    fig.add_trace(go.Scatter(
-                        x=[f1,l1],
-                        y=[y, y],
-                        mode='lines',
-                        name=str(num)
-                    ))
+            for i in range(len(od)):
+                tr = od[i]
+                if np.sign(tr[2] - tr[3]) == np.sign(tr[4] - tr[5]): continue
                 
+                found_in = False
+                
+                for j in range(len(od)):
+                    if i == j: continue
+                    otr = od[j]
+                    
+                    if otr[0] <= tr[0] and tr[1] <= otr[1]:
+                        found_in = True
+                        break
+                
+                if found_in: continue
+                recs.append(tr)
+            
+            while True:
+                found_adj = False
+                
+                for i in range(len(recs) - 1):
+                    tr, otr = recs[i], recs[i + 1]
+                    
+                    if tr[1] == otr[0]:
+                        tr[1] = otr[1]
+                        tr[3] = otr[3]
+                        tr[5] = otr[5]
+                        tr[6] = otr[6]
+                        
+                        found_adj = True
+                        recs.pop(i + 1)
+                        break
+                
+                if not found_adj: break
+            
+            return recs                
 
-            figures.append(fig)
-
-        j += 1
-
-    return figures
+        out1 = find_unique_smallest_date(TT1s)
+        out2 = find_unique_smallest_date(TT2s)
+        
+        out1 = rearrange(out1)
+        out2 = rearrange(out2)
+        
+        return out1, out2

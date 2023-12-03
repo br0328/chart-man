@@ -77,7 +77,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval):
     y = np.log10(data["close"])
     yh = np.log10(data["high"])
     yl = np.log10(data["low"])
-    x = np.linspace(0, len(data)-1, len(data))
+    x = np.linspace(0, len(data) - 1, len(data))
 
     xScaler = Scaler(x)
     yScaler = Scaler(y)
