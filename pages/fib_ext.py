@@ -112,7 +112,7 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, merge_thr
 	records.to_csv(csv_path, index = False)
 	report = get_report_content(records, csv_path)
 
-	return alert_success('Analysis Completed') + ['Plot', update_plot(df, downfalls, extensions, behaviors, cur_date, interval), report]
+	return alert_success('Analysis Completed') + ['Plot', update_plot(symbol, from_date, to_date, df, downfalls, extensions, behaviors, cur_date, interval), report]
 
 # Triggered when Symbol combo box changed
 @callback(
@@ -204,7 +204,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_th
 	# success_rate: accuracy of transaction positions
 	# cum_profit: cumulated profit on percentage basis	
 	records, success_rate, cum_profit = backtest_fib_extension(
-		df, interval, pivot_number, get_safe_num(merge_thres), symbol
+		df, interval, pivot_number, get_safe_num(merge_thres), symbol, from_date, to_date
 	)
 	csv_path = 'out/FIB-EXT-BKTEST_{}_{}_{}_{}_p{}_m{}%_sr={}%_cp={}%.csv'.format(
 		symbol, from_date, to_date, interval, pivot_number,
@@ -218,7 +218,10 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_th
 	return alert_success('Backtest Complted.') + ['Report', report]
 
 # Major plotting procedure
-def update_plot(df, downfalls, extensions, behaviors, cur_date, interval):
+def update_plot(symbol, from_date, to_date, df, downfalls, extensions, behaviors, cur_date, interval):
+	# ddf, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
+	# D = TA.STOCHD(ddf)
+    
 	cur_date = df.index[-1]
 	df = df.rename(columns = {"open": "Open", "high": "High", "low": "Low", "volume": "Volume", "close": "Close"})
     
@@ -314,6 +317,7 @@ def update_plot(df, downfalls, extensions, behaviors, cur_date, interval):
 	# Draw candlestick and volume chart
 	fig.add_trace(get_candlestick(df), row = 1, col = 1)
 	fig.add_trace(get_volume_bar(df), row = 2, col = 1)
+	#fig.add_trace(go.Scatter(x = D.index, y = D, showlegend = False), row = 2, col = 1)
 
 	ma_50d = df['Close'].rolling(50).mean().round(4)
 	ma_200d = df['Close'].rolling(200).mean().round(4)

@@ -501,7 +501,8 @@ def get_fib_ext_behaviors(df, extensions, cur_date, merge_thres):
 
 		#for d in df.loc[cur_date:].iloc:
 		for d in df.iloc:
-			v = d.high if is_resist else d.low
+			#v = d.high if is_resist else d.low
+			v = max(d.open, d.close) if is_resist else min(d.open, d.close)
 
 			if pv is not None:
 				if (pv < lv and v >= lv) or (pv > lv and v <= lv):
@@ -621,7 +622,10 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 #
 # (Return)
 # Transaction records, position accuracy rate and cumulated profit on percentage basis
-def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
+def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from_date, to_date):
+	ddf, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
+	D = TA.STOCHD(ddf)
+ 
 	cols = ['TransID', 'Position', 'EnterDate', 'EnterPrice', 'ExitDate', 'ExitPrice', 'Offset', 'Profit', 'CumProfit', 'X', ' ']
 
 	enter_date, position = None, None
@@ -631,6 +635,9 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 	res = pd.DataFrame(columns = cols)
  
 	fcounter = 0
+
+	tdf, downfalls = get_recent_downfalls_old(symbol, from_date, to_date, pivot_number) # Reduce Fibonacci pivot pairs into only recent ones
+	extensions = get_fib_extensions(tdf, downfalls, get_safe_num(merge_thres), tdf.iloc[-1]['close'] * 0.05, tdf.iloc[-1]['close'] * 5) # Merge and sort Fibonacci extension levels
 
 	for cur_date in tqdm(list(df.index), desc = 'backtesting', colour = 'red'):
 		cur_candle = df.loc[cur_date]
@@ -651,12 +658,12 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 		min_cur_price = min(cur_candle['Close'], cur_candle['Open'])
 		max_cur_price = max(cur_candle['Close'], cur_candle['Open'])
 
-		zdf = get_zigzag(df, cur_date)
-		downfalls = get_recent_downfalls(zdf, pivot_number)
+		# zdf = get_zigzag(df, cur_date)
+		# downfalls = get_recent_downfalls(zdf, pivot_number)
   
-		zdf = zdf.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
-		extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), cur_candle['Close'] * 2 * 0.05, cur_candle['Close'] * 2)
-
+		# zdf = zdf.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
+		# extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), cur_candle['Close'] * 2 * 0.05, cur_candle['Close'] * 2)
+ 
 		has_signal = False
 
 		for g in extensions:
@@ -671,33 +678,34 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol):
 				position = cur_sign
 				enter_date = cur_date
 			else:
-				price_offset = cur_candle['Close'] - df.loc[enter_date]['Close']
-				true_sign = np.sign(price_offset)				
+				if position > 0:
+					price_offset = cur_candle['Close'] - df.loc[enter_date]['Close']
+					true_sign = np.sign(price_offset)				
 
-				if true_sign == position:
-					match_count += 1
-				else:
-					fcounter += 1
+					if true_sign == position:
+						match_count += 1
+					else:
+						fcounter += 1
 
-				if true_sign == position or fcounter % 2 == 1:
-					profit = position * price_offset / df.loc[enter_date]['Close']
-					cum_profit += profit			
-					trans_count += 1
+					if true_sign == position or fcounter % 2 == 1:
+						profit = position * price_offset / df.loc[enter_date]['Close']
+						cum_profit += profit			
+						trans_count += 1
 
-					record = [
-						trans_count,
-						'Long' if position > 0 else 'Short',
-						enter_date.strftime(DBY_FORMAT),
-						'${:.4f}'.format(df.loc[enter_date]['Close']),
-						cur_date.strftime(DBY_FORMAT),
-						'{:.4f}$'.format(cur_candle['Close']),
-						'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
-						'{:.4f}%'.format(100 * profit),
-						'{:.4f}%'.format(100 * cum_profit),
-						'T' if true_sign == position else 'F',
-						' '
-					]
-					res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
+						record = [
+							trans_count,
+							'Long' if position > 0 else 'Short',
+							enter_date.strftime(DBY_FORMAT),
+							'${:.4f}'.format(df.loc[enter_date]['Close']),
+							cur_date.strftime(DBY_FORMAT),
+							'{:.4f}$'.format(cur_candle['Close']),
+							'{:.2f}%'.format(100 * price_offset / df.loc[enter_date]['Close']),
+							'{:.4f}%'.format(100 * profit),
+							'{:.4f}%'.format(100 * cum_profit),
+							'T' if true_sign == position else 'F',
+							' '
+						]
+						res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
 
 				enter_date, position = None, None
 
