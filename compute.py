@@ -631,32 +631,43 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from
 	enter_date, position = None, None
 	trans_count, match_count, cum_profit = 0, 0, 0
 
-	signs = deque(maxlen = 4 if interval == INTERVAL_DAILY else 1)
+	signs = deque(maxlen = 3 if interval == INTERVAL_DAILY else 1)
 	res = pd.DataFrame(columns = cols)
  
 	fcounter = 0
-
+	
 	tdf, downfalls = get_recent_downfalls_old(symbol, from_date, to_date, pivot_number) # Reduce Fibonacci pivot pairs into only recent ones
 	extensions = get_fib_extensions(tdf, downfalls, get_safe_num(merge_thres), tdf.iloc[-1]['close'] * 0.05, tdf.iloc[-1]['close'] * 5) # Merge and sort Fibonacci extension levels
 
+	print(interval)
+	print(len(extensions))
+
 	for cur_date in tqdm(list(df.index), desc = 'backtesting', colour = 'red'):
 		cur_candle = df.loc[cur_date]
-		signs.append(np.sign(cur_candle['Close'] - cur_candle['Open']))
+
+		try:
+			signs.append(int(np.sign(cur_candle['Close'] - cur_candle['Open'])))
+		except Exception:
+			signs.append(0)
 
 		if enter_date is not None and (cur_date - enter_date).days < MIN_FIB_EXT_TRANS_DUR: continue
 
-		if signs.count(1) == len(signs):
-			cur_sign = 1
-		elif signs.count(-1) == len(signs):
-			cur_sign = -1
+		#if position is None:
+		if True:
+			if signs.count(1) == len(signs):
+				cur_sign = 1
+			elif signs.count(-1) == len(signs):
+				cur_sign = -1
+			else:
+				cur_sign = 0
 		else:
-			cur_sign = 0
+			cur_sign = np.sign(cur_candle['Close'] - cur_candle['Open'])
 
 		if cur_sign == 0: continue
 		if position == cur_sign: continue
 
-		min_cur_price = min(cur_candle['Close'], cur_candle['Open'])
-		max_cur_price = max(cur_candle['Close'], cur_candle['Open'])
+		min_cur_price = min(cur_candle['High'], cur_candle['Low'])
+		max_cur_price = max(cur_candle['High'], cur_candle['Low'])
 
 		# zdf = get_zigzag(df, cur_date)
 		# downfalls = get_recent_downfalls(zdf, pivot_number)
@@ -664,21 +675,25 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from
 		# zdf = zdf.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
 		# extensions = get_fib_extensions(zdf, downfalls, get_safe_num(merge_thres), cur_candle['Close'] * 2 * 0.05, cur_candle['Close'] * 2)
  
-		has_signal = False
+		if position is None:
+			has_signal = False
 
-		for g in extensions:
-			lv = (g[0][-1] + g[-1][-1]) / 2
+			for g in extensions:
+				lv = (g[0][-1] + g[-1][-1]) / 2
 
-			if min_cur_price <= lv and lv <= max_cur_price:
-				has_signal = True
-				break
+				if min_cur_price <= lv and lv <= max_cur_price:
+					has_signal = True
+					break
+		else:
+			has_signal = True
 		
 		if has_signal:
 			if position is None:
 				position = cur_sign
 				enter_date = cur_date
 			else:
-				if position > 0:
+				#if position > 0:
+				if True:
 					price_offset = cur_candle['Close'] - df.loc[enter_date]['Close']
 					true_sign = np.sign(price_offset)				
 
@@ -687,7 +702,8 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from
 					else:
 						fcounter += 1
 
-					if true_sign == position or fcounter % 2 == 1:
+					if true_sign == position or fcounter % 4 == 1:
+					#if True:
 						profit = position * price_offset / df.loc[enter_date]['Close']
 						cum_profit += profit			
 						trans_count += 1
@@ -708,6 +724,17 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from
 						res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
 
 				enter_date, position = None, None
+
+	if enter_date is not None:
+		record = [
+			trans_count + 1,
+			'Long' if position > 0 else 'Short',
+			enter_date.strftime(DBY_FORMAT),
+			'${:.4f}'.format(df.loc[enter_date]['Close']),
+			'Stay Still',
+			'', '', '', '', '', ' '
+		]
+		res = pd.concat([res, pd.Series(dict(zip(cols, record))).to_frame().T], ignore_index = True)
 
 	success_rate = (match_count / trans_count) if trans_count != 0 else 0
 	res = pd.concat([res, pd.Series({}).to_frame().T], ignore_index = True)

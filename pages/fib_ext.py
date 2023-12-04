@@ -196,7 +196,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_th
 	except Exception:
 		return alert_error('Invalid merge threshold. Please input correctly and retry.', none_ret)
 	
-	df = load_yf(symbol, from_date, to_date, interval)
+	df = load_yf(symbol, from_date, to_date, INTERVAL_DAILY)
 	pivot_number = PIVOT_NUMBER_ALL.index(pivot_number) + 1
 
 	# Get results of backtest for file output and visualization
@@ -204,7 +204,7 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_th
 	# success_rate: accuracy of transaction positions
 	# cum_profit: cumulated profit on percentage basis	
 	records, success_rate, cum_profit = backtest_fib_extension(
-		df, interval, pivot_number, get_safe_num(merge_thres), symbol, from_date, to_date
+		df, INTERVAL_DAILY, pivot_number, get_safe_num(merge_thres), symbol, from_date, to_date
 	)
 	csv_path = 'out/FIB-EXT-BKTEST_{}_{}_{}_{}_p{}_m{}%_sr={}%_cp={}%.csv'.format(
 		symbol, from_date, to_date, interval, pivot_number,

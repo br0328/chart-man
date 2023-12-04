@@ -91,7 +91,7 @@ def get_two_symbol_inputs():
 		]
 	)
 
-def get_date_range(from_date = None, to_date = get_today_str()):
+def get_date_range(from_date = None, to_date = get_offset_date_str(get_today_str(), 1)):
 	return html.Div(
 		className = 'scenario_block',
 		children = [
