@@ -12,9 +12,9 @@ def test_cached_df():
 
 	print(df.columns)
 
-	for d in df.index:
-		if str(df.loc[d]['Close']).lower().startswith('na'):
-			print(d)
+	for d in df.loc[df.index[0]:]:
+		print(d.Close)
+		break
 
 def test_stake():
 	initialize_data()

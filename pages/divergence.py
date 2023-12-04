@@ -198,19 +198,91 @@ def on_backtest_clicked(n_clicks, symbol, from_date, to_date):
     if to_date is None: return alert_error('Invalid ending date. Please select one and retry.', none_ret)
     if from_date > to_date: return alert_error('Invalid duration. Please check and retry.', none_ret)
 
-    # csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}.csv'.format(
-	# 	symbol, from_date, to_date
-    # )
-    # df1, df2 = get_divergence_data(symbol, from_date, to_date, csv_path)
-    df = get_divergence_data(symbol, from_date, to_date)
+    df, acc, cum = backtest_stock_divergence(symbol, from_date, to_date)
     
-    csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}.csv'.format(
-		symbol, from_date, to_date
+    csv_path = 'out/DIVERGENCE-REPORT_{}_{}_{}_sr={:.1f}%_cp={:.1f}%.csv'.format(
+		symbol, from_date, to_date, acc, cum
     )
     df.to_csv(csv_path, index = False)
     
     #return alert_success('Analysis Completed') + ['Report', get_multi_report_content([df1, df2], ['Type-I Divergence', 'Type-II Divergence'], csv_path)]
     return alert_success('Analysis Completed') + ['Report', get_report_content(df, csv_path)]
+
+def backtest_stock_divergence(symbol, from_date, to_date):
+    out1, out2 = get_divergence_data(symbol, from_date, to_date)
+    df, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
+    D = TA.STOCHD(df)
+    
+    out = sorted(out1 + out2, key = lambda x : (x[0], x[1]))
+        
+    columns = ['Position', 'Diver-Dur', 'EntryDate', 'EntryPrice', 'ExitDate', 'ExitPrice', 'Return', 'Cum-Profit']
+    records, cumprof, matches = [], 0, 0
+    
+    for dStart, dEnd, dVStart, dVEnd, _, _, dd in out:
+        r, cumprof, succ = get_trans_record(dStart, dEnd, dd, df, D, cumprof, dVEnd > dVStart)
+        if r is None: continue
+        records.append(r)
+        if succ: matches += 1
+    
+    acc = matches / len(records) if len(records) > 0 else 0
+    
+    records.append(('', '', '', '', '', '', '', ''))
+    records.append((
+        '',
+        f"From {change_date_format(from_date, YMD_FORMAT, DBY_FORMAT)} To {change_date_format(to_date, YMD_FORMAT, DBY_FORMAT)}",
+        f"Symbol: {symbol}",
+        '',
+        'Success Rate:',
+        '{:.1f}%'.format(100 * acc),
+        '', ''
+    ))
+    records.append((
+        '', '', '', '',
+        'Cumulative Profit:',
+        '{:.1f}%'.format(100 * cumprof),
+        '', ''
+    ))    
+    records.append(('', '', '', '', '', '', '', ''))
+    
+    res_df = pd.DataFrame(records, columns = columns)
+    return res_df, 100 * acc, 100 * cumprof
+
+def get_trans_record(dStart, dEnd, dd, df, D, cumprof, is_bullish):
+    dd = datetime.strptime(dd, YMD_FORMAT)
+    di = list(D.index)
+    idx = 0
+    
+    while idx < len(di):
+        if di[idx] > dd: break
+        idx += 1
+    
+    pv = D.iloc[idx]
+    edd = None
+    sg = 1 if is_bullish else -1
+    
+    for i in range(idx + 1, len(D)):
+        if np.sign(D.iloc[i] - pv) != sg:
+            edd = di[i - 1]
+            if i == idx + 1: edd = None
+            break
+        else:
+            pv = D.iloc[i]
+
+    if edd is None: return None, cumprof, None
+
+    ret = sg * (df.loc[edd].close - df.iloc[idx].close) / df.iloc[idx].close
+    cumprof += ret
+    
+    return (
+        'Long' if is_bullish else 'Short',
+        '{} - {}'.format(dStart.strftime(DBY_FORMAT), dEnd.strftime(DBY_FORMAT)),
+        di[idx].strftime(DBY_FORMAT),
+        df.iloc[idx].close,
+        edd.strftime(DBY_FORMAT),
+        df.loc[edd].close,
+        '{:.1f}%'.format(ret * 100),
+        '{:.1f}%'.format(cumprof * 100)
+    ), cumprof, ret > 0
 
 # Backtest
 # def get_divergence_data(stock_symbol, stdate, endate, filename = None):
