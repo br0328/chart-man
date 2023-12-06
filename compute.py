@@ -646,7 +646,8 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from
 		cur_candle = df.loc[cur_date]
 
 		try:
-			signs.append(int(np.sign(cur_candle['Close'] - cur_candle['Open'])))
+			#signs.append(int(np.sign(cur_candle['Close'] - cur_candle['Open'])))
+			signs.append(int(np.sign(D.loc[cur_date] - D.loc[cur_date])))
 		except Exception:
 			signs.append(0)
 
