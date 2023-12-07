@@ -1308,6 +1308,7 @@ def finMax(i, a, n, R, markers_on):
 
 def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', interval = INTERVAL_DAILY, type_ = None, oldData = None):
 	if oldData is None:
+		print(STOCK, startDate, endDate, interval)
 		data = load_yf(STOCK, startDate, endDate, interval)
 		data = data.dropna()
 		data = data.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
