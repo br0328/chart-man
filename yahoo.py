@@ -1,5 +1,6 @@
 
-from datetime import datetime, timedelta
+from datetime import datetime
+from collections import defaultdict
 from constant import *
 from config import *
 from util import *
@@ -9,20 +10,25 @@ import joblib
 import glob
 import os
 
+yf_caches = defaultdict(lambda: None)
+
 def load_yf(symbol, start, end, interval, fit_today = True, for_backup = False):
 	if start is None: start = '1900-01-01'
 	if end is None: end = '2100-01-01'
 	if interval is None: interval = INTERVAL_DAILY
     
-	if yf_on:
-		df = yf.download(symbol, start = start, end = get_offset_date_str(end, 1), interval = '1d', progress = False)
-		df = df.drop('Adj Close', axis = 1)
+	df = yf_caches[symbol]
+	
+	if df is None:
+		if yf_on:
+			df = yf.download(symbol, start = start, end = get_offset_date_str(end, 1), interval = '1d', progress = False)
+			df = df.drop('Adj Close', axis = 1)
 
-		if for_backup:
-			joblib.dump(df, './cache/{}.che'.format(symbol))
-			return
-	else:
-		df = joblib.load('./cache/{}.che'.format(symbol))
+			if for_backup:
+				joblib.dump(df, './cache/{}.che'.format(symbol))
+				yf_caches[symbol] = df
+		else:
+			df = joblib.load('./cache/{}.che'.format(symbol))
 
 	df = df.dropna()
 	df = df.round(4)
