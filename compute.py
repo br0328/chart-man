@@ -767,7 +767,7 @@ def get_dashboard_info():
 	res = pd.DataFrame(columns = cols)
 
 	for symbol in tqdm(load_stock_symbols(), desc = 'loading', colour = 'green'):
-		df = load_yf(symbol, '1800-01-01', '2100-01-01', INTERVAL_DAILY)
+		df = load_yf(symbol, '1800-01-01', '2100-01-01', INTERVAL_DAILY, for_backup = True)
 
 		highs = df['High'].to_numpy()		
 		last_date = df.index[-1]
@@ -1308,6 +1308,7 @@ def finMax(i, a, n, R, markers_on):
 
 def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', interval = INTERVAL_DAILY, type_ = None, oldData = None):
 	if oldData is None:
+		print(STOCK, startDate, endDate, interval)
 		data = load_yf(STOCK, startDate, endDate, interval)
 		data = data.dropna()
 		data = data.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})

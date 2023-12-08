@@ -71,9 +71,11 @@ def on_analyze_clicked(n_clicks, symbol, from_date, to_date, cur_date):
     cur_date = get_timestamp(cur_date)
     #fig, df = runStochDivergance(symbol, from_date, to_date, cur_date = cur_date)
     
-    out1, out2 = get_divergence_data(symbol, from_date, to_date)
     df, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
     D = TA.STOCHD(df)
+
+    from_date = get_nearest_forward_date(df, get_timestamp(from_date)).strftime(YMD_FORMAT)
+    out1, out2 = get_divergence_data(symbol, from_date, to_date)    
     
     fig = make_subplots(rows = 2, cols = 1, shared_xaxes = True, vertical_spacing = 0.01, subplot_titles = ('Stock prices', 'Stochastic Indicator'), row_width = [0.29,0.7])
     fig.update_yaxes(type = 'log', row = 1, col = 1)
