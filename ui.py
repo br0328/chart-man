@@ -178,6 +178,18 @@ def get_backtest_button(prefix):
 		]
 	)
 
+def get_run_button(prefix):
+	return html.Div(
+		className = 'scenario_button',
+		children = [
+			html.Button(
+				'RUN',
+				id = prefix + '-run-button',
+				n_clicks = 0
+			),
+		]
+	)
+
 def get_scenario_div(children):
 	return html.Div(
 		className = 'scenario_div',

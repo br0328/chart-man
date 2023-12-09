@@ -1,5 +1,5 @@
 
-yf_on = True
+yf_on = False
 
 zigzag_window = 110
 zigzag_padding = 10

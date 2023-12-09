@@ -23,16 +23,18 @@ def load_yf(symbol, start, end, interval, fit_today = True, for_backup = False):
 		if yf_on:
 			df = yf.download(symbol, start = start, end = get_offset_date_str(end, 1), interval = '1d', progress = False)
 			df = df.drop('Adj Close', axis = 1)
-
-			if for_backup:
-				joblib.dump(df, './cache/{}.che'.format(symbol))
-				yf_caches[symbol] = df
 		else:
 			df = joblib.load('./cache/{}.che'.format(symbol))
 
+		if for_backup:
+			joblib.dump(df, './cache/{}.che'.format(symbol))
+			yf_caches[symbol] = df     
+
 	df = df.dropna()
 	df = df.round(4)
-	df = df.loc[start:get_offset_date_str(end, 1)]
+ 
+	end = get_offset_date_str(end, 1)
+	df = df.loc[start:datetime.strptime(end, YMD_FORMAT)]
 
 	agg_dict = {
 		'Open': 'first',

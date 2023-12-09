@@ -7,14 +7,7 @@ import joblib
 
 def test_cached_df():
 	df = joblib.load('./cache/AAPL.che')
-	print(df[:-1])
-	print('###')
-
-	print(df.columns)
-
-	for d in df.loc[df.index[0]:]:
-		print(d.Close)
-		break
+	print(df.tail(3))
 
 def test_stake():
 	initialize_data()

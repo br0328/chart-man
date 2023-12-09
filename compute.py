@@ -1308,7 +1308,6 @@ def finMax(i, a, n, R, markers_on):
 
 def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', interval = INTERVAL_DAILY, type_ = None, oldData = None):
 	if oldData is None:
-		print(STOCK, startDate, endDate, interval)
 		data = load_yf(STOCK, startDate, endDate, interval)
 		data = data.dropna()
 		data = data.rename(columns = {"Open": "open", "High": "high", "Low": "low", "Volume": "volume", "Close": "close"})
@@ -1333,9 +1332,9 @@ def getPointsGivenR(STOCK, R, startDate = '2000-01-01', endDate = '2121-01-01', 
 	else:
 		return None, None
 
-def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07', return_csv = False, cur_date = None):
+def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07', return_csv = False, cur_date = None, old_data = None):
 	R = 1.02
-	data, _, _ = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date)
+	data, _, _ = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, oldData = old_data)
 	_, lows = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='lows', oldData = data)
 	_, highs = getPointsGivenR(symbol, R, startDate = from_date, endDate = to_date, type_='highs', oldData = data)
 
@@ -1408,7 +1407,7 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 				dStart = start
 				dEnd = ending
 				
-				if data.iloc[stockStart].low > data.iloc[stockEnd].low: # Nikola Added
+				if True:#data.iloc[stockStart].low > data.iloc[stockEnd].low: # Nikola Added
 					a1 = dict(
 						x0 = data.iloc[dStart].name,
 						y0 = D.iloc[dStart],
@@ -1466,7 +1465,7 @@ def runStochDivergance(symbol, from_date = '2000-01-01', to_date = '2022-08-07',
 				dStart = start
 				dEnd = ending
 
-				if data.iloc[stockStart].high < data.iloc[stockEnd].high: # Nikola Added
+				if True:#data.iloc[stockStart].high < data.iloc[stockEnd].high: # Nikola Added
 					a1 = dict(
 						x0 = data.iloc[dStart].name,
 						y0 = D.iloc[dStart],
@@ -1729,7 +1728,7 @@ def plotter1(pairs, xx, yy, xScaler, yScaler, intervalSET, data, y):
 
 	return figures
 
-def get_divergence_data(stock_symbol, stdate, endate):
+def get_divergence_data(stock_symbol, stdate, endate, oldData):
         year, month, day = map(int, stdate.split('-'))
         sdate = date(year, month, day)
         
@@ -1739,12 +1738,12 @@ def get_divergence_data(stock_symbol, stdate, endate):
         COMMON_START_DATE = sdate
         STOCK = stock_symbol
 
-        days = pd.date_range(sdate, edate - timedelta(days = 1), freq = 'd').strftime('%Y-%m-%d').tolist()
+        days = pd.date_range(sdate, edate, freq = 'd').strftime('%Y-%m-%d').tolist()
         TT1s, TT2s = [], []
 
         for dd in tqdm(days):
             # Calculate divergence and get transactions
-            type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True)
+            type1, type2, df = runStochDivergance(STOCK, COMMON_START_DATE, dd, True, old_data = oldData[:dd])
             t1s = []
             
             for t in type1:
@@ -1811,25 +1810,31 @@ def get_divergence_data(stock_symbol, stdate, endate):
                 if found_in: continue
                 recs.append(tr)
             
-            while True:
-                found_adj = False
+            # while True:
+            #     found_adj = False
                 
-                for i in range(len(recs) - 1):
-                    tr, otr = recs[i], recs[i + 1]
+            #     for i in range(len(recs) - 1):
+            #         tr, otr = recs[i], recs[i + 1]
                     
-                    if tr[1] == otr[0]:
-                        tr[1] = otr[1]
-                        tr[3] = otr[3]
-                        tr[5] = otr[5]
-                        tr[6] = otr[6]
+            #         if tr[1] == otr[0]:
+            #             tr[1] = otr[1]
+            #             tr[3] = otr[3]
+            #             tr[5] = otr[5]
+            #             tr[6] = otr[6]
                         
-                        found_adj = True
-                        recs.pop(i + 1)
-                        break
+            #             found_adj = True
+            #             recs.pop(i + 1)
+            #             break
                 
-                if not found_adj: break
+            #     if not found_adj: break
             
-            return recs                
+            new_recs = []
+            
+            for startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd in recs:
+                if (datetime.strptime(dd, YMD_FORMAT) - endDate).days <= 14:
+                    new_recs.append((startDate, endDate, DvalueStart, DvalueEnd, stockValueStart, stockValueEnd, dd))
+            
+            return new_recs
 
         out1 = find_unique_smallest_date(TT1s)
         out2 = find_unique_smallest_date(TT2s)
