@@ -623,46 +623,48 @@ def analyze_fib_extension(df, extensions, behaviors, cur_date, pivot_number, mer
 # (Return)
 # Transaction records, position accuracy rate and cumulated profit on percentage basis
 def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from_date, to_date):
-	ddf, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
-	D = TA.STOCHD(ddf)
+	#ddf, _, _ = getPointsGivenR(symbol, 1.02, startDate = from_date, endDate = to_date)
+	#D = TA.STOCHD(ddf)
  
 	cols = ['TransID', 'Position', 'EnterDate', 'EnterPrice', 'ExitDate', 'ExitPrice', 'Offset', 'Profit', 'CumProfit', 'X', ' ']
 
 	enter_date, position = None, None
 	trans_count, match_count, cum_profit = 0, 0, 0
 
-	signs = deque(maxlen = 3 if interval == INTERVAL_DAILY else 1)
+	signs = deque(maxlen = 14 if interval == INTERVAL_DAILY else 4)
 	res = pd.DataFrame(columns = cols)
  
-	fcounter = 0
-	
+	#fcounter = 0	
 	tdf, downfalls = get_recent_downfalls_old(symbol, from_date, to_date, pivot_number) # Reduce Fibonacci pivot pairs into only recent ones
 	extensions = get_fib_extensions(tdf, downfalls, get_safe_num(merge_thres), tdf.iloc[-1]['close'] * 0.05, tdf.iloc[-1]['close'] * 5) # Merge and sort Fibonacci extension levels
-
-	print(interval)
-	print(len(extensions))
 
 	for cur_date in tqdm(list(df.index), desc = 'backtesting', colour = 'red'):
 		cur_candle = df.loc[cur_date]
 
 		try:
-			#signs.append(int(np.sign(cur_candle['Close'] - cur_candle['Open'])))
-			signs.append(int(np.sign(D.loc[cur_date] - D.loc[cur_date])))
+			signs.append(int(np.sign(cur_candle['Close'] - cur_candle['Open'])))
+			#signs.append(int(np.sign(D.loc[cur_date] - D.loc[cur_date])))
 		except Exception:
 			signs.append(0)
 
 		if enter_date is not None and (cur_date - enter_date).days < MIN_FIB_EXT_TRANS_DUR: continue
 
-		#if position is None:
-		if True:
-			if signs.count(1) == len(signs):
+		if position is None:
+		#if True:
+			if signs.count(1) > len(signs) * 3 / 5:
 				cur_sign = 1
-			elif signs.count(-1) == len(signs):
+			elif signs.count(-1) > len(signs) * 4 / 5:
 				cur_sign = -1
 			else:
 				cur_sign = 0
 		else:
-			cur_sign = np.sign(cur_candle['Close'] - cur_candle['Open'])
+			if signs.count(1) > len(signs) * 0.5:
+				cur_sign = 1
+			elif signs.count(-1) > len(signs) * 0.5:
+				cur_sign = -1
+			else:
+				cur_sign = 0
+			#cur_sign = np.sign(cur_candle['Close'] - cur_candle['Open'])
 
 		if cur_sign == 0: continue
 		if position == cur_sign: continue
@@ -700,11 +702,11 @@ def backtest_fib_extension(df, interval, pivot_number, merge_thres, symbol, from
 
 					if true_sign == position:
 						match_count += 1
-					else:
-						fcounter += 1
+					# else:
+					# 	fcounter += 1
 
-					if true_sign == position or fcounter % 4 == 1:
-					#if True:
+					#if true_sign == position or fcounter % 4 == 1:
+					if True:
 						profit = position * price_offset / df.loc[enter_date]['Close']
 						cum_profit += profit			
 						trans_count += 1
