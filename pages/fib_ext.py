@@ -21,7 +21,7 @@ dash.register_page(__name__, path = '/fibext', name = 'Fibonacci Extension', ord
 scenario_div = get_scenario_div([
 	get_symbol_input(),
 	get_date_range(),
-	get_interval_input(value = INTERVAL_MONTHLY)
+	#get_interval_input(value = INTERVAL_MONTHLY)
 ])
 parameter_div = get_parameter_div([
 	#get_cur_date_picker(),
@@ -51,7 +51,7 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out
 		State('symbol-input', 'value'),
 		State('from-date-input', 'date'),
 		State('to-date-input', 'date'),
-		State('interval-input', 'value'),
+		#State('interval-input', 'value'),
 		#State('cur-date-input', 'date'),
 		#State('pivot-input', 'value'),
 		State('merge-input', 'value')
@@ -59,7 +59,8 @@ layout = get_page_layout('Fibonacci|Extension', scenario_div, parameter_div, out
 	prevent_initial_call = True
 )
 #def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, cur_date, pivot_number, merge_thres):
-def on_analyze_clicked(n_clicks, symbol, from_date, to_date, interval, merge_thres):
+def on_analyze_clicked(n_clicks, symbol, from_date, to_date, merge_thres):
+	interval = INTERVAL_MONTHLY
 	none_ret = ['Plot', None, None] # Padding return values
 
 	if n_clicks == 0: return alert_hide(none_ret)
@@ -165,14 +166,15 @@ def on_symbol_changed(symbol, from_date):
 		State('symbol-input', 'value'),
 		State('from-date-input', 'date'),
 		State('to-date-input', 'date'),
-		State('interval-input', 'value'),
+		#State('interval-input', 'value'),
 		#State('pivot-input', 'value'),
 		State('merge-input', 'value')
 	],
 	prevent_initial_call = True
 )
 #def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, pivot_number, merge_thres):
-def on_backtest_clicked(n_clicks, symbol, from_date, to_date, interval, merge_thres):
+def on_backtest_clicked(n_clicks, symbol, from_date, to_date, merge_thres):
+	interval = INTERVAL_MONTHLY
 	none_ret = ['Report', None]
 
 	if n_clicks == 0: return alert_hide(none_ret)
