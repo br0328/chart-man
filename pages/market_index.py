@@ -131,7 +131,7 @@ def on_analyze_clicked(n_clicks, from_date, to_date):
                 dcc.Graph(figure = fig1, className = 'market_index_graph')
             ]),
             html.Div([
-                html.Label(outputlow),
+                html.Label(outputhigh),
                 dcc.Graph(figure = fig2, className = 'market_index_graph'),
                 html.Hr()
             ])
